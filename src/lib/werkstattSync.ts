@@ -28,7 +28,9 @@
 import type { ProjectData } from '../types';
 
 export const WERKSTATT_API_URL = import.meta.env.VITE_WERKSTATT_API_URL || '';
-export const WERKSTATT_DOMAIN_TAG = import.meta.env.VITE_WERKSTATT_DOMAIN_TAG || '02_KERAMIK';
+// Default: 'ARC' (HRFR-v3.2 DOM code for Architektur).
+// Override per-instance via VITE_WERKSTATT_DOMAIN_TAG in .env.local.
+export const WERKSTATT_DOMAIN_TAG = import.meta.env.VITE_WERKSTATT_DOMAIN_TAG || 'ARC';
 
 export const isWerkstattSyncConfigured = () => !!WERKSTATT_API_URL;
 
@@ -86,10 +88,14 @@ function toRoadmapPayload(project: ProjectData): WerkstattRoadmapPayload {
  * whether to log/ignore it, but never mutates ArtisPlan state — canvas work
  * must keep working even if Project Companion OS is offline.
  */
-export async function syncTimelineToWerkstatt(project: ProjectData): Promise<void> {
+export async function syncTimelineToWerkstatt(
+  project: ProjectData,
+  signal?: AbortSignal,
+): Promise<void> {
   if (!isWerkstattSyncConfigured()) return;
 
-  const projectName = (project.title || project.id).trim();
+  // Use stable project.id as roadmap key — title changes must NOT orphan the roadmap.
+  const projectName = (project.id || project.title).trim();
   if (!projectName) return;
 
   const token = getOsToken();
@@ -100,6 +106,7 @@ export async function syncTimelineToWerkstatt(project: ProjectData): Promise<voi
     method: 'PUT',
     headers,
     body: JSON.stringify(toRoadmapPayload(project)),
+    signal,
   });
 
   if (!res.ok) {
