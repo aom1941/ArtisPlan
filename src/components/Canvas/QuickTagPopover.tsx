@@ -20,7 +20,7 @@ export interface QuickTagPopoverProps {
   onRemoveTag: (tag: string) => void;
   onClearTags?: () => void;
   onClose: () => void;
-  theme?: 'dark' | 'light' | 'oled' | 'sepia';
+  theme?: 'dark' | 'light' | 'oled' | 'sepia' | 'companion';
   anchorAlign?: 'top' | 'bottom';
 }
 

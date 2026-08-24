@@ -54,15 +54,36 @@ import {
 } from './lib/workspace';
 import { getActiveBrushPreset, saveCustomBrush } from './lib/brushEngine';
 import { isWerkstattSyncConfigured, syncTimelineToWerkstatt } from './lib/werkstattSync';
+import { pushAnnotationDigest, isCompanionConfigured, type IdeaPoolItem } from './lib/companionBridge';
 import { createVersionSnapshot, loadProjectVersions } from './lib/versionControl';
 import { alignCanvasObjects, type CanvasAlignmentAction } from './lib/alignmentEngine';
 import { useCanvasHistory } from './hooks/useCanvasHistory';
 import { sanitizeAndMigrateProject } from './lib/projectMigration';
 import { ProjectMutations } from './lib/projectMutations';
 
+// Project Companion OS embeds ArtisPlan as the "Werkstatt" app's iframe with
+// its own OS token appended as ?auth_token=... (see werkstattSync.ts's
+// getOsToken and project-companion-os/frontend/main.js's appIcons.werkstatt).
+// That query param is otherwise meaningless to a standalone ArtisPlan tab, so
+// its presence doubles as a reliable "we're embedded" signal without needing
+// a dedicated env var — used here only to pick a matching default theme.
+function detectCompanionEmbed(): boolean {
+  try {
+    return !!new URLSearchParams(window.location.search).get('auth_token');
+  } catch {
+    return false;
+  }
+}
+
 export default function App() {
   // Theme state: dark | light | oled | sepia
-  const [theme, setTheme] = useState<'dark' | 'light' | 'oled' | 'sepia'>('dark');
+  // 'companion' is not part of the manual theme cycle (Navbar's toggleTheme) —
+  // it's set automatically when embedded inside Project Companion OS (see
+  // detectCompanionEmbed below) so the canvas chrome matches the OS's glass
+  // palette instead of looking like a foreign iframe.
+  const [theme, setTheme] = useState<'dark' | 'light' | 'oled' | 'sepia' | 'companion'>(
+    () => detectCompanionEmbed() ? 'companion' : 'dark'
+  );
 
   // Active View: canvas | moodboard | timeline | gallery | workspace
   const [activeView, setActiveView] = useState<'canvas' | 'moodboard' | 'timeline' | 'gallery' | 'workspace'>('canvas');
@@ -177,7 +198,6 @@ export default function App() {
       // store. No-ops when VITE_WERKSTATT_API_URL isn't set; a failure here
       // must never affect Nextcloud sync state or canvas usage.
       if (isWerkstattSyncConfigured()) {
-        werkstattInFlight.current?.abort();
         const ac = new AbortController();
         werkstattInFlight.current = ac;
         syncTimelineToWerkstatt(project, ac.signal).catch((err) => {
@@ -186,10 +206,23 @@ export default function App() {
           }
         });
       }
+
+      // Best-effort push of currently-open annotations so Project Companion
+      // OS can surface them as an agentic sticky note on its desktop. Same
+      // no-op-when-unconfigured, never-block-canvas-usage guarantee as above.
+      if (isCompanionConfigured()) {
+        pushAnnotationDigest(project).catch((err) => {
+          console.warn('Annotation-Digest-Sync fehlgeschlagen (nicht kritisch):', err);
+        });
+      }
     }, 1500);
 
     return () => {
       if (saveTimeoutRef.current) clearTimeout(saveTimeoutRef.current);
+      // Cancel a still-running sync as soon as this state is superseded (a
+      // newer `project` render, or unmount) — otherwise a stale PUT can land
+      // after a fresher one during the debounce window.
+      werkstattInFlight.current?.abort();
     };
   }, [project]);
 
@@ -695,6 +728,35 @@ export default function App() {
     setActiveView('canvas');
   };
 
+  // Pin a Project Companion OS Ideen-Pool entry to the canvas as a sticky —
+  // mirrors handlePinMoodboardToCanvas above. Ideas can be text/audio/etc.
+  // without an image, so they land as a sticky rather than a Gallery item
+  // (ReferenceImageItem requires a url for its <img> preview).
+  const handleImportIdeaAsSticky = (idea: IdeaPoolItem) => {
+    recordHistory();
+    const stickyText = `💡 ${idea.title}\n\n${idea.memo}\n\nTags: ${idea.tags.join(', ')}`;
+    const newSticky = {
+      id: `sticky-idea-${idea.id}-${Date.now()}`,
+      text: stickyText,
+      x: (-pan.x + 240) / zoom,
+      y: (-pan.y + 140) / zoom,
+      width: 260,
+      height: 200,
+      color: '#BAE6FD',
+      rotation: 1,
+      author: 'Ideen-Pool',
+      layerId: activeLayerId,
+      tags: idea.tags,
+      createdAt: Date.now()
+    };
+
+    setProject(prev => ({
+      ...prev,
+      stickies: [...prev.stickies, newSticky]
+    }));
+    setActiveView('canvas');
+  };
+
   // Canvas Alignment Handlers
   const handleAlignCanvasObjects = useCallback((action: CanvasAlignmentAction, target: 'selection' | 'canvas') => {
     let targets = selectedCanvasElements;
@@ -774,6 +836,10 @@ export default function App() {
       theme === 'light' ? 'bg-zinc-100 text-zinc-900' :
       theme === 'oled' ? 'bg-black text-white' :
       theme === 'sepia' ? 'bg-[#F4ECE1] text-[#3D312A]' :
+      // Matches Project Companion OS's --bg-color (#0f172a) so the iframe's
+      // outer margin doesn't read as a foreign black rectangle inside the
+      // OS's slate/glass window chrome.
+      theme === 'companion' ? 'bg-[#0f172a] text-slate-100' :
       'bg-[#0A0A0B] text-zinc-100'
     }`}>
       {/* Top Navigation Bar */}
@@ -1022,6 +1088,7 @@ export default function App() {
             onDropToCanvas={handleDropRefToCanvas}
             onSetFloatingPipReference={(refItem) => setPipReference(refItem)}
             onOpenWorkspace={() => setShowWorkspaceModal(true)}
+            onImportIdeaToCanvas={handleImportIdeaAsSticky}
           />
         )}
 

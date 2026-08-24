@@ -30,7 +30,7 @@ import {
 interface TouchGestureVisualOverlayProps {
   liveState: GestureLiveState | null;
   settings: TouchGestureSettings;
-  theme?: 'dark' | 'light' | 'oled' | 'sepia';
+  theme?: 'dark' | 'light' | 'oled' | 'sepia' | 'companion';
   onSimulateGesture?: (gestureId: any) => void;
 }
 

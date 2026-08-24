@@ -33,7 +33,7 @@ interface GuideManagerPanelProps {
   onUpdateGuides: (guides: CanvasCustomGuide[]) => void;
   onFocusGuide?: (guide: CanvasCustomGuide) => void;
   onClose: () => void;
-  theme?: 'dark' | 'light' | 'oled' | 'sepia';
+  theme?: 'dark' | 'light' | 'oled' | 'sepia' | 'companion';
 }
 
 const PRESET_COLORS = [

@@ -53,7 +53,7 @@ export interface SelectionActionBarProps {
   onClearTags?: () => void;
   onAlign?: (action: CanvasAlignmentAction, target: 'selection' | 'canvas') => void;
   onClose: () => void;
-  theme: 'dark' | 'light' | 'oled' | 'sepia';
+  theme: 'dark' | 'light' | 'oled' | 'sepia' | 'companion';
 }
 
 const QUICK_COLORS = [

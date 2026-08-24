@@ -41,7 +41,7 @@ export interface CanvasContextMenuProps {
   onDeselect?: () => void;
   onAlign?: (action: CanvasAlignmentAction, target: 'selection' | 'canvas') => void;
   onClose: () => void;
-  theme: 'dark' | 'light' | 'oled' | 'sepia';
+  theme: 'dark' | 'light' | 'oled' | 'sepia' | 'companion';
 }
 
 export const CanvasContextMenu: React.FC<CanvasContextMenuProps> = ({
