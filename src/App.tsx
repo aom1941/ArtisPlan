@@ -55,6 +55,7 @@ import {
   exportTimelineToGoogleSheets 
 } from './lib/workspace';
 import { getActiveBrushPreset, saveCustomBrush } from './lib/brushEngine';
+import { isWerkstattSyncConfigured, syncTimelineToWerkstatt } from './lib/werkstattSync';
 import { createVersionSnapshot, loadProjectVersions } from './lib/versionControl';
 import { alignCanvasObjects, type CanvasAlignmentAction } from './lib/alignmentEngine';
 import { useCanvasHistory } from './hooks/useCanvasHistory';
@@ -174,6 +175,15 @@ export default function App() {
     saveTimeoutRef.current = setTimeout(async () => {
       const success = await saveProjectToCloud(project);
       if (success) setIsCloudSynced(true);
+
+      // Best-effort bridge into Project Companion OS's werkstatt_sdk roadmap
+      // store. No-ops when VITE_WERKSTATT_API_URL isn't set; a failure here
+      // must never affect Firestore sync state or canvas usage.
+      if (isWerkstattSyncConfigured()) {
+        syncTimelineToWerkstatt(project).catch((err) => {
+          console.warn('Werkstatt-Sync fehlgeschlagen (nicht kritisch):', err);
+        });
+      }
     }, 1500);
 
     return () => {
