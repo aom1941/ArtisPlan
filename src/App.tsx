@@ -184,6 +184,7 @@ export default function App() {
 
   // Auto-Save locally & to Nextcloud (debounced)
   const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const werkstattInFlight = useRef<AbortController | null>(null);
   useEffect(() => {
     saveLocalProject(project);
     setIsCloudSynced(false);
@@ -197,8 +198,12 @@ export default function App() {
       // store. No-ops when VITE_WERKSTATT_API_URL isn't set; a failure here
       // must never affect Nextcloud sync state or canvas usage.
       if (isWerkstattSyncConfigured()) {
-        syncTimelineToWerkstatt(project).catch((err) => {
-          console.warn('Werkstatt-Sync fehlgeschlagen (nicht kritisch):', err);
+        const ac = new AbortController();
+        werkstattInFlight.current = ac;
+        syncTimelineToWerkstatt(project, ac.signal).catch((err) => {
+          if (err?.name !== 'AbortError') {
+            console.warn('Werkstatt-Sync fehlgeschlagen (nicht kritisch):', err);
+          }
         });
       }
 
@@ -214,6 +219,10 @@ export default function App() {
 
     return () => {
       if (saveTimeoutRef.current) clearTimeout(saveTimeoutRef.current);
+      // Cancel a still-running sync as soon as this state is superseded (a
+      // newer `project` render, or unmount) — otherwise a stale PUT can land
+      // after a fresher one during the debounce window.
+      werkstattInFlight.current?.abort();
     };
   }, [project]);
 
