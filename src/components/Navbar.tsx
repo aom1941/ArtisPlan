@@ -25,6 +25,7 @@ import {
   Download
 } from 'lucide-react';
 import type { ProjectData, StylusSettings } from '../types';
+import { CompanionVitalsPill } from './CompanionVitalsPill';
 
 interface NavbarProps {
   activeView: 'canvas' | 'moodboard' | 'timeline' | 'gallery' | 'workspace';
@@ -40,8 +41,8 @@ interface NavbarProps {
   canRedo: boolean;
   onUndo: () => void;
   onRedo: () => void;
-  theme: 'dark' | 'light' | 'oled' | 'sepia';
-  setTheme: (theme: 'dark' | 'light' | 'oled' | 'sepia') => void;
+  theme: 'dark' | 'light' | 'oled' | 'sepia' | 'companion';
+  setTheme: (theme: 'dark' | 'light' | 'oled' | 'sepia' | 'companion') => void;
   stylusSettings: StylusSettings;
   setStylusSettings: React.Dispatch<React.SetStateAction<StylusSettings>>;
   onOpenShortcuts: () => void;
@@ -96,8 +97,16 @@ export const Navbar: React.FC<NavbarProps> = ({
     else setTheme('dark');
   };
 
+  // Companion theme swaps the near-black chrome for Project Companion OS's
+  // glass-panel look (rgba(30,41,59,.45) + blur + rgba(255,255,255,.1) border,
+  // see project-companion-os/frontend/style.css's .glass-panel) so the Navbar
+  // reads as part of the OS window instead of a foreign app's title bar.
+  const headerClass = theme === 'companion'
+    ? 'h-14 border-b border-white/10 bg-slate-800/45 backdrop-blur-xl px-3 flex items-center justify-between select-none z-30 shrink-0'
+    : 'h-14 border-b border-zinc-800/80 bg-[#0E0E12]/95 backdrop-blur-xl px-3 flex items-center justify-between select-none z-30 shrink-0';
+
   return (
-    <header className="h-14 border-b border-zinc-800/80 bg-[#0E0E12]/95 backdrop-blur-xl px-3 flex items-center justify-between select-none z-30 shrink-0">
+    <header className={headerClass}>
       {/* Left: Branding & Project Selector */}
       <div className="flex items-center gap-3">
         <div className="flex items-center gap-2 pr-3 border-r border-zinc-800/80">
@@ -327,6 +336,9 @@ export const Navbar: React.FC<NavbarProps> = ({
           <Cloud className={`w-3.5 h-3.5 ${isCloudSynced ? 'text-emerald-400' : 'text-amber-400 animate-pulse'}`} />
           <span className="hidden sm:inline">{nextcloudConfigured ? 'Nextcloud Synced' : 'Nextcloud Setup'}</span>
         </button>
+
+        {/* Project Companion OS: shared Ollama load heads-up (no-ops if not embedded) */}
+        <CompanionVitalsPill />
 
         {/* Keyboard Shortcuts Cheatsheet */}
         <button

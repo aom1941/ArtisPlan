@@ -1,20 +1,23 @@
-import React, { useState, useRef } from 'react';
-import { 
-  Image as ImageIcon, 
-  Plus, 
-  Search, 
-  Filter, 
-  ExternalLink, 
-  Pin, 
-  Copy, 
-  Trash2, 
-  Upload, 
+import React, { useState, useRef, useEffect } from 'react';
+import {
+  Image as ImageIcon,
+  Plus,
+  Search,
+  Filter,
+  ExternalLink,
+  Pin,
+  Copy,
+  Trash2,
+  Upload,
   Sparkles,
   LayoutGrid,
   Check,
-  FolderOpen
+  FolderOpen,
+  Lightbulb,
+  PenLine
 } from 'lucide-react';
 import type { ProjectData, ReferenceImageItem } from '../../types';
+import { isCompanionConfigured, fetchIdeaPool, type IdeaPoolItem } from '../../lib/companionBridge';
 
 interface ReferenceGalleryProps {
   project: ProjectData;
@@ -22,6 +25,7 @@ interface ReferenceGalleryProps {
   onDropToCanvas: (refItem: ReferenceImageItem) => void;
   onSetFloatingPipReference: (refItem: ReferenceImageItem) => void;
   onOpenWorkspace: () => void;
+  onImportIdeaToCanvas: (idea: IdeaPoolItem) => void;
 }
 
 const CATEGORIES = [
@@ -39,12 +43,31 @@ export const ReferenceGallery: React.FC<ReferenceGalleryProps> = ({
   setProject,
   onDropToCanvas,
   onSetFloatingPipReference,
-  onOpenWorkspace
+  onOpenWorkspace,
+  onImportIdeaToCanvas
 }) => {
   const [selectedCategory, setSelectedCategory] = useState<string>('All');
   const [searchQuery, setSearchQuery] = useState('');
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Project Companion OS's Ideen-Pool (SQLite-backed idea vault) — only
+  // fetched when the OS bridge is configured (typically: embedded as the
+  // iframe). Best-effort: an empty/unreachable pool just hides the panel.
+  const [ideaPool, setIdeaPool] = useState<IdeaPoolItem[]>([]);
+  const [ideaPoolLoaded, setIdeaPoolLoaded] = useState(false);
+
+  useEffect(() => {
+    if (!isCompanionConfigured()) return;
+    let cancelled = false;
+    fetchIdeaPool().then((ideas) => {
+      if (!cancelled) {
+        setIdeaPool(ideas);
+        setIdeaPoolLoaded(true);
+      }
+    });
+    return () => { cancelled = true; };
+  }, []);
 
   const gallery = project.referenceGallery || [];
 
@@ -166,6 +189,41 @@ export const ReferenceGallery: React.FC<ReferenceGalleryProps> = ({
             </div>
           </div>
         </div>
+
+        {/* Ideen-Pool Import — Project Companion OS bridge */}
+        {isCompanionConfigured() && ideaPoolLoaded && ideaPool.length > 0 && (
+          <div className="bg-[#121216]/95 border border-zinc-800/90 rounded-3xl p-5 md:p-6 shadow-2xl shadow-black/50 backdrop-blur-xl">
+            <div className="flex items-center gap-2 mb-4">
+              <Lightbulb className="w-4 h-4 text-cyan-400" />
+              <h2 className="text-sm font-bold text-white font-['Outfit']">Ideen-Pool (Project Companion OS)</h2>
+              <span className="text-[10px] text-zinc-500">{ideaPool.length} Einträge</span>
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+              {ideaPool.map((idea) => (
+                <div
+                  key={idea.id}
+                  className="bg-[#16161B] border border-zinc-800/90 rounded-2xl p-3 flex flex-col gap-2"
+                >
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="text-[10px] font-bold text-cyan-400 uppercase tracking-wider truncate">{idea.status}</span>
+                    <span className="text-[10px] text-zinc-500 shrink-0">{idea.date}</span>
+                  </div>
+                  <h4 className="text-xs font-semibold text-zinc-100 truncate">{idea.title}</h4>
+                  {idea.memo && (
+                    <p className="text-[11px] text-zinc-400 line-clamp-2 leading-tight">{idea.memo}</p>
+                  )}
+                  <button
+                    onClick={() => onImportIdeaToCanvas(idea)}
+                    className="mt-1 flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-lg bg-cyan-950/80 hover:bg-cyan-900 text-cyan-200 text-[11px] font-semibold border border-cyan-800/80 transition-colors"
+                  >
+                    <PenLine className="w-3.5 h-3.5" />
+                    <span>Als Sticky auf Canvas pinnen</span>
+                  </button>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
 
         {/* Gallery Masonry / Grid */}
         <div className="space-y-4">

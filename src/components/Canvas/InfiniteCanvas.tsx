@@ -90,7 +90,7 @@ interface InfiniteCanvasProps {
   onOpenAnnotation: (annotation: CanvasAnnotation) => void;
   onColorPick: (colorHex: string) => void;
   onRecordHistory: () => void;
-  theme: 'dark' | 'light' | 'oled' | 'sepia';
+  theme: 'dark' | 'light' | 'oled' | 'sepia' | 'companion';
   activeBrushPreset?: BrushPreset;
   highlightedId?: string | null;
   heatmapSettings?: HeatmapSettings;
@@ -2283,7 +2283,7 @@ export const InfiniteCanvas: React.FC<InfiniteCanvasProps> = ({
       id="artisplan-infinite-canvas-container"
       className={`relative w-full h-full overflow-hidden select-none cursor-${activeTool === 'hand' || isPanning ? 'grab' : activeTool === 'eyedropper' ? 'crosshair' : 'crosshair'}`}
       style={{
-        backgroundColor: theme === 'light' ? '#F4F4F5' : theme === 'oled' ? '#000000' : theme === 'sepia' ? '#FBF0D9' : '#18181B',
+        backgroundColor: theme === 'light' ? '#F4F4F5' : theme === 'oled' ? '#000000' : theme === 'sepia' ? '#FBF0D9' : theme === 'companion' ? '#0f172a' : '#18181B',
         touchAction: 'none'
       }}
       onPointerDown={handlePointerDown}
@@ -2390,7 +2390,7 @@ export const InfiniteCanvas: React.FC<InfiniteCanvasProps> = ({
             if (onOpenGestureSettings) onOpenGestureSettings();
           }}
           onClose={() => setShowCommandPalette(false)}
-          theme={theme === 'sepia' ? 'light' : theme}
+          theme={theme === 'sepia' ? 'light' : theme === 'companion' ? 'dark' : theme}
         />
       )}
 
