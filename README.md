@@ -44,6 +44,18 @@ ArtisPlan Studio is a high-performance, infinite sketching and vector canvas bui
 
 ---
 
+## Self-Hosted Integrations (optional)
+
+ArtisPlan works entirely standalone (local canvas state persisted via `localStorage`), but can optionally connect to self-hosted services instead of any cloud API — see `.env.example`:
+
+- **AI generation** (Moodboard Generator, AI Timeline Generator, Annotation Critique) runs against [Ollama](https://ollama.com/) (`OLLAMA_URL` / `OLLAMA_MODEL`, no API key) rather than a cloud LLM. If Ollama is unreachable, each feature falls back to curated static defaults.
+- **Project sync, backup & export** (Navbar's Nextcloud button / "Workspace" view) uses [Nextcloud](https://nextcloud.com/) WebDAV (`VITE_NEXTCLOUD_URL` / `VITE_NEXTCLOUD_USER` / `VITE_NEXTCLOUD_APP_PASSWORD`) instead of Google Drive/Docs/Sheets — full project JSON backups, a Markdown project brief, and a CSV timeline export.
+- **Timeline → werkstatt_sdk bridge** (`VITE_WERKSTATT_API_URL`) pushes milestones into a self-hosted [Project Companion OS](https://github.com/aom1941/Project-Companion----visual-computer) instance — see that repo's `CLAUDE.md` for the full picture.
+
+None of these are required — every integration no-ops cleanly if its env vars are unset.
+
+---
+
 ## Getting Started
 
 ### Prerequisites

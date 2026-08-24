@@ -47,7 +47,7 @@ interface ExportCanvasModalProps {
   zoom: number;
   theme: string;
   heatmapSettings?: HeatmapSettings;
-  googleUser?: any;
+  nextcloudConfigured?: boolean;
   onBackupToDrive?: () => void;
 }
 
@@ -61,7 +61,7 @@ export const ExportCanvasModal: React.FC<ExportCanvasModalProps> = ({
   zoom,
   theme,
   heatmapSettings,
-  googleUser,
+  nextcloudConfigured,
   onBackupToDrive
 }) => {
   // Export Settings State
@@ -841,16 +841,16 @@ export const ExportCanvasModal: React.FC<ExportCanvasModalProps> = ({
                   )}
                 </button>
 
-                {/* Google Drive Upload if Workspace linked */}
-                {googleUser && onBackupToDrive && (
+                {/* Nextcloud Upload if configured */}
+                {nextcloudConfigured && onBackupToDrive && (
                   <button
                     type="button"
                     onClick={onBackupToDrive}
                     className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-semibold bg-emerald-950/70 hover:bg-emerald-900 border border-emerald-700/80 text-emerald-300 transition-colors"
-                    title="Upload to connected Google Drive"
+                    title="Upload to configured Nextcloud"
                   >
                     <CloudUpload className="w-3.5 h-3.5" />
-                    <span className="hidden sm:inline">To Drive</span>
+                    <span className="hidden sm:inline">To Nextcloud</span>
                   </button>
                 )}
 

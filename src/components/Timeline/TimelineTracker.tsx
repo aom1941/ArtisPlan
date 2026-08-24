@@ -20,14 +20,14 @@ import type { ProjectData, ProjectMilestone } from '../../types';
 interface TimelineTrackerProps {
   project: ProjectData;
   setProject: React.Dispatch<React.SetStateAction<ProjectData>>;
-  onExportToGoogleSheets: () => void;
+  onExportToNextcloud: () => void;
   isExportingSheet: boolean;
 }
 
 export const TimelineTracker: React.FC<TimelineTrackerProps> = ({
   project,
   setProject,
-  onExportToGoogleSheets,
+  onExportToNextcloud,
   isExportingSheet
 }) => {
   const [isGeneratingAi, setIsGeneratingAi] = useState(false);
@@ -158,12 +158,12 @@ export const TimelineTracker: React.FC<TimelineTrackerProps> = ({
 
             <div className="flex items-center gap-3">
               <button
-                onClick={onExportToGoogleSheets}
+                onClick={onExportToNextcloud}
                 disabled={isExportingSheet}
                 className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 text-white text-xs font-bold transition-all shadow-md shadow-emerald-950/40"
               >
                 <FileSpreadsheet className="w-4 h-4" />
-                <span>{isExportingSheet ? 'Syncing to Sheets...' : 'Export to Google Sheets'}</span>
+                <span>{isExportingSheet ? 'Exporting CSV...' : 'Export Timeline (CSV)'}</span>
               </button>
 
               <button

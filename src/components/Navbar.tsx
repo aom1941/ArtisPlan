@@ -47,8 +47,8 @@ interface NavbarProps {
   onOpenShortcuts: () => void;
   onOpenWorkspace: () => void;
   isCloudSynced: boolean;
-  googleUser: any;
-  onTriggerDriveBackup: () => void;
+  nextcloudConfigured: boolean;
+  onTriggerNextcloudBackup: () => void;
   isBackingUp: boolean;
   onOpenTimeMachine?: () => void;
   onOpenBrushStudio?: () => void;
@@ -79,8 +79,8 @@ export const Navbar: React.FC<NavbarProps> = ({
   onOpenShortcuts,
   onOpenWorkspace,
   isCloudSynced,
-  googleUser,
-  onTriggerDriveBackup,
+  nextcloudConfigured,
+  onTriggerNextcloudBackup,
   isBackingUp,
   onOpenTimeMachine,
   onOpenBrushStudio,
@@ -314,18 +314,18 @@ export const Navbar: React.FC<NavbarProps> = ({
           <span className="hidden sm:inline">{stylusSettings.palmRejection ? "Stylus Lock" : "Touch+Pen"}</span>
         </button>
 
-        {/* Google Workspace & Cloud Backup Button */}
+        {/* Nextcloud Workspace & Cloud Backup Button */}
         <button
           onClick={onOpenWorkspace}
           className={`flex items-center gap-1.5 px-2.5 py-1 rounded-xl text-xs font-medium border transition-all ${
-            googleUser 
+            nextcloudConfigured
               ? 'bg-emerald-950/60 border-emerald-700/60 text-emerald-300 hover:bg-emerald-900/60 shadow-sm shadow-emerald-950/30'
               : 'bg-[#18181D]/90 border-zinc-800 text-zinc-300 hover:bg-[#22222A]'
           }`}
-          title="Google Drive, Docs & Sheets Hub"
+          title="Nextcloud Backup, Brief & Timeline Export"
         >
           <Cloud className={`w-3.5 h-3.5 ${isCloudSynced ? 'text-emerald-400' : 'text-amber-400 animate-pulse'}`} />
-          <span className="hidden sm:inline">{googleUser ? 'Workspace Linked' : 'Connect GDrive'}</span>
+          <span className="hidden sm:inline">{nextcloudConfigured ? 'Nextcloud Synced' : 'Nextcloud Setup'}</span>
         </button>
 
         {/* Keyboard Shortcuts Cheatsheet */}
