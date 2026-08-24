@@ -125,11 +125,16 @@ export const SmartGuidesVisualOverlay: React.FC<SmartGuidesVisualOverlayProps> =
           const isCenter = guide.snapType.includes('center') || guide.snapType === 'origin-axis';
           const isGap = guide.snapType === 'equal-gap';
           const isDimension = guide.snapType === 'dimension-match';
+          const isManual = guide.snapType === 'manual-guide';
 
-          const strokeColor = isGap || isDimension
+          const strokeColor = guide.color 
+            ? guide.color 
+            : isGap || isDimension
             ? '#10B981' // Emerald Green
             : isCenter
             ? '#F43F5E' // Bright Rose / Neon Magenta
+            : isManual
+            ? '#8B5CF6' // Purple / Violet
             : '#06B6D4'; // Electric Cyan
 
           const strokeWidth = 1.5 / zoom;
@@ -137,6 +142,8 @@ export const SmartGuidesVisualOverlay: React.FC<SmartGuidesVisualOverlayProps> =
             ? `${6 / zoom},${3 / zoom}` 
             : isGap 
             ? `${4 / zoom},${2 / zoom}` 
+            : isManual
+            ? `${8 / zoom},${4 / zoom}`
             : undefined;
 
           // Equal Gap Multi-Interval Renderer
@@ -421,11 +428,15 @@ export const SmartGuidesVisualOverlay: React.FC<SmartGuidesVisualOverlayProps> =
           badgeY = guide.coord;
         }
 
-        const badgeBg = isGap
+        const badgeBg = guide.color
+          ? 'bg-zinc-950/95 border-zinc-700/80 text-zinc-100 shadow-2xl'
+          : isGap
           ? 'bg-emerald-950/95 border-emerald-500/90 text-emerald-300 shadow-[0_0_20px_rgba(16,185,129,0.4)]'
           : isCenter
           ? 'bg-rose-950/95 border-rose-500/90 text-rose-300 shadow-[0_0_20px_rgba(244,63,94,0.4)]'
           : 'bg-cyan-950/95 border-cyan-500/90 text-cyan-300 shadow-[0_0_20px_rgba(6,182,212,0.4)]';
+
+        const dotColor = guide.color || (isGap ? '#10B981' : isCenter ? '#F43F5E' : '#06B6D4');
 
         const scale = 1 / zoom;
 
@@ -439,15 +450,20 @@ export const SmartGuidesVisualOverlay: React.FC<SmartGuidesVisualOverlayProps> =
               transform: `translate(-50%, -50%) scale(${Math.max(0.75, Math.min(1.2, scale))})`
             }}
           >
-            <div className={`px-2.5 py-1 rounded-full border shadow-2xl backdrop-blur-xl font-mono text-[10.5px] font-bold flex items-center gap-1.5 whitespace-nowrap select-none ${badgeBg}`}>
+            <div 
+              className={`px-2.5 py-1 rounded-full border shadow-2xl backdrop-blur-xl font-mono text-[10.5px] font-bold flex items-center gap-1.5 whitespace-nowrap select-none ${badgeBg}`}
+              style={guide.color ? { borderColor: `${guide.color}80` } : undefined}
+            >
               {/* Dynamic Haptic Magnet Pulse Indicator */}
               <div className="relative flex items-center justify-center">
-                <div className={`w-2 h-2 rounded-full ${
-                  isGap ? 'bg-emerald-400' : isCenter ? 'bg-rose-400' : 'bg-cyan-400'
-                }`} />
-                <div className={`absolute -inset-1 rounded-full animate-ping opacity-75 ${
-                  isGap ? 'bg-emerald-400' : isCenter ? 'bg-rose-400' : 'bg-cyan-400'
-                }`} />
+                <div 
+                  className="w-2 h-2 rounded-full" 
+                  style={{ backgroundColor: dotColor }}
+                />
+                <div 
+                  className="absolute -inset-1 rounded-full animate-ping opacity-75" 
+                  style={{ backgroundColor: dotColor }}
+                />
               </div>
               <span className="tracking-tight">{guide.label}</span>
               {guide.subLabel && (

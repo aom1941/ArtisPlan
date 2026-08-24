@@ -25,6 +25,38 @@ export const createDefaultProject = (id = 'project-default', title = 'Neo-Tokyo 
       { id: 'layer-color', name: 'Color & Lighting Pass', visible: true, locked: false, opacity: 0.9 },
       { id: 'layer-annotations', name: 'Art Director Notes', visible: true, locked: false, opacity: 1 }
     ],
+    guides: [
+      {
+        id: 'guide-1',
+        name: 'Top Composition Margin',
+        orientation: 'horizontal',
+        position: 120,
+        color: '#06B6D4',
+        locked: false,
+        visible: true,
+        createdAt: Date.now() - 50000
+      },
+      {
+        id: 'guide-2',
+        name: 'Left Focal Baseline',
+        orientation: 'vertical',
+        position: 200,
+        color: '#F43F5E',
+        locked: false,
+        visible: true,
+        createdAt: Date.now() - 40000
+      },
+      {
+        id: 'guide-3',
+        name: 'Right Boundary Anchor',
+        orientation: 'vertical',
+        position: 960,
+        color: '#10B981',
+        locked: false,
+        visible: true,
+        createdAt: Date.now() - 30000
+      }
+    ],
     strokes: [
       // Sample expressive initial sketch strokes
       {
@@ -358,6 +390,11 @@ export const sanitizeProject = (raw: Partial<ProjectData> | null | undefined): P
     texts: Array.isArray(raw.texts) ? raw.texts : [],
     shapes: Array.isArray(raw.shapes) ? raw.shapes : [],
     annotations: Array.isArray(raw.annotations) ? raw.annotations : [],
+    guides: Array.isArray(raw.guides) 
+      ? raw.guides 
+      : Array.isArray(raw.canvasSettings?.manualGuides) 
+      ? raw.canvasSettings.manualGuides 
+      : (fallback.guides || []),
     moodboard: raw.moodboard ? {
       ...fallback.moodboard,
       ...raw.moodboard,

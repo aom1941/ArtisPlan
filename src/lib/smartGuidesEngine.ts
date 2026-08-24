@@ -1,4 +1,4 @@
-import type { ProjectData } from '../types';
+import type { ProjectData, CanvasCustomGuide } from '../types';
 import { getItemBounds, type CanvasObjectBounds, type SelectedElementRef } from './alignmentEngine';
 
 export type SmartGuideSnapType =
@@ -8,7 +8,8 @@ export type SmartGuideSnapType =
   | 'origin-axis'
   | 'center-origin'
   | 'dimension-match'
-  | 'equal-gap';
+  | 'equal-gap'
+  | 'manual-guide';
 
 export interface SmartGuideAnchorPoint {
   x: number;
@@ -34,6 +35,7 @@ export interface SmartGuideLine {
   isLocked?: boolean;
   targetBounds?: CanvasObjectBounds;
   movingBounds?: { x: number; y: number; width: number; height: number };
+  color?: string;
 }
 
 export interface SmartGuideSnapResult {
@@ -114,6 +116,7 @@ export function computeSmartGuidesOnMove(
     zoom?: number;
     includeOrigin?: boolean;
     detectGaps?: boolean;
+    manualGuides?: CanvasCustomGuide[];
   } = {}
 ): SmartGuideSnapResult {
   const zoom = options.zoom || 1;
@@ -136,7 +139,8 @@ export function computeSmartGuidesOnMove(
     snapType: SmartGuideSnapType;
     label: string;
     targetBounds?: CanvasObjectBounds;
-    matchedType: 'left' | 'center' | 'right' | 'origin';
+    matchedType?: 'left' | 'center' | 'right' | 'origin';
+    color?: string;
   } | null = null;
 
   let bestSnapY: {
@@ -145,7 +149,8 @@ export function computeSmartGuidesOnMove(
     snapType: SmartGuideSnapType;
     label: string;
     targetBounds?: CanvasObjectBounds;
-    matchedType: 'top' | 'middle' | 'bottom' | 'origin';
+    matchedType?: 'top' | 'middle' | 'bottom' | 'origin';
+    color?: string;
   } | null = null;
 
   // 1. Check Origin Snap (x = 0, y = 0)
@@ -188,6 +193,57 @@ export function computeSmartGuidesOnMove(
             label: t.label,
             matchedType: 'origin'
           };
+        }
+      }
+    }
+  }
+
+  // 1.5 Check Manual Custom Magnetic Guidelines
+  if (options.manualGuides && options.manualGuides.length > 0) {
+    for (const mg of options.manualGuides) {
+      if (mg.visible === false) continue;
+
+      if (mg.orientation === 'vertical') {
+        const tests = [
+          { current: centerX, delta: mg.position - centerX, matchedType: 'center' as const, label: `Guide: ${mg.name} (Center)` },
+          { current: currentX, delta: mg.position - currentX, matchedType: 'left' as const, label: `Guide: ${mg.name} (Left)` },
+          { current: right, delta: mg.position - right, matchedType: 'right' as const, label: `Guide: ${mg.name} (Right)` }
+        ];
+
+        for (const t of tests) {
+          if (Math.abs(t.delta) <= threshold) {
+            if (!bestSnapX || Math.abs(t.delta) < Math.abs(bestSnapX.delta)) {
+              bestSnapX = {
+                delta: t.delta,
+                coord: mg.position,
+                snapType: 'manual-guide',
+                label: t.label,
+                matchedType: t.matchedType,
+                color: mg.color
+              };
+            }
+          }
+        }
+      } else if (mg.orientation === 'horizontal') {
+        const tests = [
+          { current: centerY, delta: mg.position - centerY, matchedType: 'middle' as const, label: `Guide: ${mg.name} (Center)` },
+          { current: currentY, delta: mg.position - currentY, matchedType: 'top' as const, label: `Guide: ${mg.name} (Top)` },
+          { current: bottom, delta: mg.position - bottom, matchedType: 'bottom' as const, label: `Guide: ${mg.name} (Bottom)` }
+        ];
+
+        for (const t of tests) {
+          if (Math.abs(t.delta) <= threshold) {
+            if (!bestSnapY || Math.abs(t.delta) < Math.abs(bestSnapY.delta)) {
+              bestSnapY = {
+                delta: t.delta,
+                coord: mg.position,
+                snapType: 'manual-guide',
+                label: t.label,
+                matchedType: t.matchedType,
+                color: mg.color
+              };
+            }
+          }
         }
       }
     }
@@ -460,7 +516,8 @@ export function computeSmartGuidesOnMove(
       anchorPoints,
       isLocked: true,
       targetBounds: bestSnapX.targetBounds,
-      movingBounds: { x: snappedX, y: snappedY, width, height }
+      movingBounds: { x: snappedX, y: snappedY, width, height },
+      color: bestSnapX.color
     });
   }
 
@@ -525,7 +582,8 @@ export function computeSmartGuidesOnMove(
       anchorPoints,
       isLocked: true,
       targetBounds: bestSnapY.targetBounds,
-      movingBounds: { x: snappedX, y: snappedY, width, height }
+      movingBounds: { x: snappedX, y: snappedY, width, height },
+      color: bestSnapY.color
     });
   }
 

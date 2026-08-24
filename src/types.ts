@@ -226,6 +226,17 @@ export type GridPatternType =
   | 'rule-of-thirds'
   | 'none';
 
+export interface CanvasCustomGuide {
+  id: string;
+  name: string;
+  orientation: 'horizontal' | 'vertical';
+  position: number; // coordinate on canvas in pixels (X for vertical, Y for horizontal)
+  color: string; // custom hex color code
+  locked: boolean; // whether guide can be dragged on canvas
+  visible: boolean; // whether guide is visible and magnetically snaps
+  createdAt?: number;
+}
+
 export interface CanvasGridSettings {
   backgroundColor: string;
   gridPattern: GridPatternType;
@@ -242,6 +253,7 @@ export interface CanvasGridSettings {
   enableHapticFeedback?: boolean; // Haptic vibration and audio feedback on snap
   snapThreshold?: number; // Magnetic snapping distance threshold in px (default 10px)
   stickySnapResistance?: number; // Breakaway threshold for sticky latch
+  manualGuides?: CanvasCustomGuide[];
 }
 
 export interface ProjectData {
@@ -259,6 +271,7 @@ export interface ProjectData {
   annotations: CanvasAnnotation[];
   layers: CanvasLayer[];
   groups?: CanvasGroup[];
+  guides?: CanvasCustomGuide[]; // User-managed manual magnetic guidelines
   moodboard: MoodboardData;
   timeline: ProjectTimeline;
   referenceGallery: ReferenceImageItem[];

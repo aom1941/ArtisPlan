@@ -73,6 +73,9 @@ interface CanvasToolbarProps {
   selectedCount?: number;
   onAlign?: (action: CanvasAlignmentAction, target: 'selection' | 'canvas') => void;
   onSelectAll?: () => void;
+  onOpenGuideManager?: () => void;
+  isGuideManagerActive?: boolean;
+  guidesCount?: number;
 }
 
 export const CanvasToolbar: React.FC<CanvasToolbarProps> = ({
@@ -110,7 +113,10 @@ export const CanvasToolbar: React.FC<CanvasToolbarProps> = ({
   onClearActiveLayer,
   selectedCount = 0,
   onAlign,
-  onSelectAll
+  onSelectAll,
+  onOpenGuideManager,
+  isGuideManagerActive = false,
+  guidesCount = 0
 }) => {
   const [showShapeMenu, setShowShapeMenu] = useState(false);
   const [showBrushControls, setShowBrushControls] = useState(false);
@@ -744,6 +750,28 @@ export const CanvasToolbar: React.FC<CanvasToolbarProps> = ({
               />
             )}
           </div>
+        )}
+
+        {/* Magnetic Smart Guide Manager */}
+        {onOpenGuideManager && (
+          <button
+            onClick={onOpenGuideManager}
+            className={`relative p-2 rounded-xl text-xs font-medium transition-all ${
+              isGuideManagerActive
+                ? 'bg-purple-600/90 text-white shadow-lg shadow-purple-950/50'
+                : guidesCount > 0
+                ? 'text-purple-400 hover:text-purple-200 hover:bg-purple-950/40 bg-[#191528]'
+                : 'text-zinc-400 hover:text-purple-300 hover:bg-[#1E1E26]'
+            }`}
+            title={`Magnetic Guide Manager (${guidesCount} custom guides)`}
+          >
+            <Magnet className="w-4 h-4" />
+            {guidesCount > 0 && (
+              <span className="absolute -top-1 -right-1 px-1 min-w-[15px] h-[15px] rounded-full bg-purple-400 text-black text-[9px] font-black flex items-center justify-center shadow-md">
+                {guidesCount}
+              </span>
+            )}
+          </button>
         )}
 
         {/* Touch Gestures & Command Palette */}

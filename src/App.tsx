@@ -32,6 +32,7 @@ import { CanvasSearchSidebar } from './components/Canvas/CanvasSearchSidebar';
 import { HeatmapInspectorPanel } from './components/Canvas/HeatmapInspectorPanel';
 import { TouchGestureModal } from './components/Canvas/TouchGestureModal';
 import { ExportCanvasModal } from './components/Canvas/ExportCanvasModal';
+import { GuideManagerPanel } from './components/Canvas/GuideManagerPanel';
 import type { HeatmapSettings, HotspotCluster } from './types/heatmap';
 import type { TouchGestureSettings, CanvasActionId } from './types/gestures';
 import { loadTouchSettings, saveTouchSettings } from './lib/gestureEngine';
@@ -113,6 +114,7 @@ export default function App() {
   const [showProjectModal, setShowProjectModal] = useState(false);
   const [showTouchGestureModal, setShowTouchGestureModal] = useState(false);
   const [showExportModal, setShowExportModal] = useState(false);
+  const [showGuideManager, setShowGuideManager] = useState(false);
   const [touchSettings, setTouchSettings] = useState<TouchGestureSettings>(() => loadTouchSettings());
   const [pipReference, setPipReference] = useState<ReferenceImageItem | null>(null);
   const [isFullscreen, setIsFullscreen] = useState(false);
@@ -833,6 +835,7 @@ export default function App() {
               eraserMode={eraserMode}
               onSelectionChange={setSelectedCanvasElements}
               onAlign={handleAlignCanvasObjects}
+              onOpenGuideManager={() => setShowGuideManager(true)}
             />
 
             {/* Artist Floating Dock */}
@@ -885,6 +888,9 @@ export default function App() {
               selectedCount={selectedCanvasElements.length}
               onAlign={handleAlignCanvasObjects}
               onSelectAll={handleSelectAllCanvasObjects}
+              onOpenGuideManager={() => setShowGuideManager(prev => !prev)}
+              isGuideManagerActive={showGuideManager}
+              guidesCount={project.guides?.length || 0}
             />
 
             {/* Quick Tablet Controls */}
@@ -925,6 +931,35 @@ export default function App() {
                 onNavigateToHotspot={handleNavigateToHotspot}
                 onClose={() => setShowHeatmapInspector(false)}
                 highlightedHotspotId={highlightedHotspotId}
+              />
+            )}
+
+            {/* Magnetic Guide Manager Panel */}
+            {showGuideManager && (
+              <GuideManagerPanel
+                guides={project.guides || []}
+                onUpdateGuides={(newGuides) => {
+                  recordHistory();
+                  setProject(prev => ({
+                    ...prev,
+                    guides: newGuides
+                  }));
+                }}
+                onFocusGuide={(guide) => {
+                  if (guide.orientation === 'vertical') {
+                    setPan(prev => ({
+                      ...prev,
+                      x: Math.round(window.innerWidth / 2 - guide.position * zoom)
+                    }));
+                  } else {
+                    setPan(prev => ({
+                      ...prev,
+                      y: Math.round(window.innerHeight / 2 - guide.position * zoom)
+                    }));
+                  }
+                }}
+                onClose={() => setShowGuideManager(false)}
+                theme={theme}
               />
             )}
 

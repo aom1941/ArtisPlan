@@ -13,7 +13,8 @@ import type {
   ShapeType,
   BrushPreset,
   EraserMode,
-  CanvasGroup
+  CanvasGroup,
+  CanvasCustomGuide
 } from '../../types';
 import type { HeatmapSettings, HotspotCluster } from '../../types/heatmap';
 import { renderActivityHeatmap, detectActivityHotspots } from '../../utils/heatmapEngine';
@@ -32,6 +33,7 @@ import { SelectionActionBar } from './SelectionActionBar';
 import { CanvasContextMenu } from './CanvasContextMenu';
 import { alignCanvasObjects, getItemBounds, type CanvasAlignmentAction } from '../../lib/alignmentEngine';
 import { SmartGuidesVisualOverlay } from './SmartGuidesVisualOverlay';
+import { CanvasCustomGuidesLayer } from './CanvasCustomGuidesLayer';
 import { 
   computeSmartGuidesOnMove, 
   computeSmartGuidesOnResize, 
@@ -99,6 +101,7 @@ interface InfiniteCanvasProps {
   eraserMode?: EraserMode;
   onSelectionChange?: (selected: Array<{ type: 'image' | 'sticky' | 'text' | 'shape' | 'annotation'; id: string }>) => void;
   onAlign?: (action: CanvasAlignmentAction, target: 'selection' | 'canvas') => void;
+  onOpenGuideManager?: () => void;
 }
 
 export const InfiniteCanvas: React.FC<InfiniteCanvasProps> = ({
@@ -129,7 +132,8 @@ export const InfiniteCanvas: React.FC<InfiniteCanvasProps> = ({
   onOpenGestureSettings,
   eraserMode = 'stroke',
   onSelectionChange,
-  onAlign
+  onAlign,
+  onOpenGuideManager
 }) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -244,7 +248,41 @@ export const InfiniteCanvas: React.FC<InfiniteCanvasProps> = ({
     initialBounds: { x: number; y: number; width: number; height: number };
     initialItems: Map<string, any>;
   } | null>(null);
+  const draggingGuideRef = useRef<{
+    id: string;
+    orientation: 'horizontal' | 'vertical';
+    initialPos: number;
+    startCoord: number;
+  } | null>(null);
   const hasRecordedEraserHistoryRef = useRef(false);
+
+  // Manual Guideline canvas handlers
+  const handleStartDragGuide = useCallback((guide: CanvasCustomGuide, e: React.PointerEvent) => {
+    e.stopPropagation();
+    const rawCoords = getCanvasCoords(e.clientX, e.clientY);
+    draggingGuideRef.current = {
+      id: guide.id,
+      orientation: guide.orientation,
+      initialPos: guide.position,
+      startCoord: guide.orientation === 'vertical' ? rawCoords.x : rawCoords.y
+    };
+  }, [pan, zoom]);
+
+  const handleUpdateGuide = useCallback((id: string, updates: Partial<CanvasCustomGuide>) => {
+    if (onRecordHistory) onRecordHistory();
+    setProject(prev => ({
+      ...prev,
+      guides: (prev.guides || []).map(g => g.id === id ? { ...g, ...updates } : g)
+    }));
+  }, [onRecordHistory, setProject]);
+
+  const handleDeleteGuide = useCallback((id: string) => {
+    if (onRecordHistory) onRecordHistory();
+    setProject(prev => ({
+      ...prev,
+      guides: (prev.guides || []).filter(g => g.id !== id)
+    }));
+  }, [onRecordHistory, setProject]);
 
   // Sync selectedElements with parent
   useEffect(() => {
@@ -1651,6 +1689,26 @@ export const InfiniteCanvas: React.FC<InfiniteCanvasProps> = ({
     }
 
     const rawCoords = getCanvasCoords(e.clientX, e.clientY);
+
+    // Moving a custom magnetic guideline directly on canvas
+    if (draggingGuideRef.current) {
+      const { id, orientation, initialPos, startCoord } = draggingGuideRef.current;
+      const currentVal = orientation === 'vertical' ? rawCoords.x : rawCoords.y;
+      const delta = currentVal - startCoord;
+      let newPosition = Math.round(initialPos + delta);
+
+      // Snap to canvas center origin (0) if close
+      if (Math.abs(newPosition - 0) <= 10 / zoom) {
+        newPosition = 0;
+      }
+
+      setProject(prev => ({
+        ...prev,
+        guides: (prev.guides || []).map(g => g.id === id ? { ...g, position: newPosition } : g)
+      }));
+      return;
+    }
+
     const snapResult = snapPointToGrid(rawCoords, project.canvasSettings);
     const x = snapResult.x;
     const y = snapResult.y;
@@ -1812,7 +1870,8 @@ export const InfiniteCanvas: React.FC<InfiniteCanvasProps> = ({
           zoom,
           snapThreshold: project.canvasSettings?.snapThreshold ?? 10,
           includeOrigin: project.canvasSettings?.showOriginAxis ?? true,
-          detectGaps: true
+          detectGaps: true,
+          manualGuides: project.guides
         });
 
         const snapToGuides = project.canvasSettings?.snapToGuides !== false;
@@ -1964,6 +2023,11 @@ export const InfiniteCanvas: React.FC<InfiniteCanvasProps> = ({
 
     if (isPanning) {
       setIsPanning(false);
+    }
+
+    if (draggingGuideRef.current) {
+      if (onRecordHistory) onRecordHistory();
+      draggingGuideRef.current = null;
     }
 
     if (resizingStateRef.current) {
@@ -2358,6 +2422,17 @@ export const InfiniteCanvas: React.FC<InfiniteCanvasProps> = ({
       >
         {/* Dynamic Magnetic Smart Alignment & Center Guidelines Overlay */}
         <SmartGuidesVisualOverlay guides={activeSmartGuides} zoom={zoom} pan={pan} />
+
+        {/* Manual Custom Magnetic Guidelines Layer */}
+        <CanvasCustomGuidesLayer
+          guides={project.guides || []}
+          zoom={zoom}
+          pan={pan}
+          onStartDragGuide={handleStartDragGuide}
+          onUpdateGuide={handleUpdateGuide}
+          onDeleteGuide={handleDeleteGuide}
+          onOpenGuideManager={onOpenGuideManager}
+        />
 
         {/* Marquee Drag Selection Rectangle */}
         {marqueeBox && (
