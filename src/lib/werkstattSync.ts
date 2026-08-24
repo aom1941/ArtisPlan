@@ -32,7 +32,13 @@ export const WERKSTATT_DOMAIN_TAG = import.meta.env.VITE_WERKSTATT_DOMAIN_TAG ||
 
 export const isWerkstattSyncConfigured = () => !!WERKSTATT_API_URL;
 
-function getOsToken(): string {
+/**
+ * Exported so companionBridge.ts (Ideen-Pool import, /api/vitals pill,
+ * annotation digest push — all talking to the same Project Companion OS
+ * backend) can reuse the same auth_token-from-iframe-URL resolution instead
+ * of re-deriving it.
+ */
+export function getOsToken(): string {
   try {
     const fromUrl = new URLSearchParams(window.location.search).get('auth_token');
     if (fromUrl) return fromUrl;

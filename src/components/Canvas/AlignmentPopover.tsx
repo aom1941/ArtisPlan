@@ -28,7 +28,7 @@ export interface AlignmentPopoverProps {
   onAlign: (action: CanvasAlignmentAction, target: 'selection' | 'canvas') => void;
   onSelectAll?: () => void;
   onClose: () => void;
-  theme: 'dark' | 'light' | 'oled' | 'sepia';
+  theme: 'dark' | 'light' | 'oled' | 'sepia' | 'companion';
   anchorAlign?: 'top' | 'bottom';
 }
 

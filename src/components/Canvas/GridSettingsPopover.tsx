@@ -24,7 +24,7 @@ interface GridSettingsPopoverProps {
   settings: CanvasGridSettings;
   onChange: (newSettings: CanvasGridSettings) => void;
   onClose: () => void;
-  theme?: 'dark' | 'light' | 'oled' | 'sepia';
+  theme?: 'dark' | 'light' | 'oled' | 'sepia' | 'companion';
 }
 
 const PATTERNS: Array<{

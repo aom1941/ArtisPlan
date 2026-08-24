@@ -13,7 +13,7 @@ import { GridSettingsPopover } from './GridSettingsPopover';
 interface GridCanvasPillProps {
   settings: CanvasGridSettings;
   onChange: (newSettings: CanvasGridSettings) => void;
-  theme: 'dark' | 'light' | 'oled' | 'sepia';
+  theme: 'dark' | 'light' | 'oled' | 'sepia' | 'companion';
 }
 
 export const GridCanvasPill: React.FC<GridCanvasPillProps> = ({

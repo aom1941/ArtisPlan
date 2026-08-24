@@ -54,7 +54,7 @@ interface CanvasToolbarProps {
   onToggleLayers: () => void;
   layersCount: number;
   onOpenMoodboardPalette: () => void;
-  theme: 'dark' | 'light' | 'oled' | 'sepia';
+  theme: 'dark' | 'light' | 'oled' | 'sepia' | 'companion';
   activeBrushPreset?: any;
   onOpenBrushStudio?: () => void;
   onOpenTimeMachine?: () => void;
