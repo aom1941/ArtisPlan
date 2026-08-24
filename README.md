@@ -65,7 +65,7 @@ Start the local development server:
 ```bash
 npm run dev
 ```
-The application will be accessible at `http://localhost:3000`.
+The application will be accessible at `http://localhost:5175` (override with `PORT=<port>`).
 
 ### Production Build
 Compile the client application and bundled backend server:

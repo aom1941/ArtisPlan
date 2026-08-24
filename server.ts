@@ -38,7 +38,12 @@ function cleanAndParseJson<T>(rawText: string | undefined, fallback: T): T {
 
 async function startServer() {
   const app = express();
-  const PORT = 3000;
+  // 3000 collides with the Gemini Ink OS Vite dev server (repo root of
+  // Project-Companion----visual-computer) and with the Gitea connector URL in
+  // that repo's project-companion-os/backend/connectors.json — pick the next
+  // free slot after elster-ready-accounting (:5173) / picas-fingerprint-explorer
+  // (:5174) in that same connectors.json, overridable via PORT.
+  const PORT = Number(process.env.PORT) || 5175;
 
   app.use(express.json({ limit: "50mb" }));
 
