@@ -15,7 +15,7 @@
  * Configuration (.env.local):
  *   VITE_WERKSTATT_API_URL="http://127.0.0.1:9999/api/werkstatt"
  *   VITE_WERKSTATT_TOKEN=""            # only needed outside the iframe — see below
- *   VITE_WERKSTATT_DOMAIN_TAG="02_KERAMIK"
+ *   VITE_WERKSTATT_DOMAIN_TAG="ARC"
  *
  * When ArtisPlan is embedded as the "Werkstatt" app's iframe inside Project
  * Companion OS (see project-companion-os/frontend/main.js), the OS passes its
@@ -84,7 +84,8 @@ function toRoadmapPayload(project: ProjectData): WerkstattRoadmapPayload {
 
 /**
  * Push the current project's timeline to werkstatt_sdk as a roadmap keyed by
- * the project title. Best-effort: throws on failure so the caller decides
+ * the stable project id (falling back to title only if id is missing).
+ * Best-effort: throws on failure so the caller decides
  * whether to log/ignore it, but never mutates ArtisPlan state — canvas work
  * must keep working even if Project Companion OS is offline.
  */
@@ -95,14 +96,14 @@ export async function syncTimelineToWerkstatt(
   if (!isWerkstattSyncConfigured()) return;
 
   // Use stable project.id as roadmap key — title changes must NOT orphan the roadmap.
-  const projectName = (project.id || project.title).trim();
-  if (!projectName) return;
+  const roadmapKey = (project.id || project.title).trim();
+  if (!roadmapKey) return;
 
   const token = getOsToken();
   const headers: Record<string, string> = { 'Content-Type': 'application/json' };
   if (token) headers['X-OS-Token'] = token;
 
-  const res = await fetch(`${WERKSTATT_API_URL}/roadmaps/${encodeURIComponent(projectName)}`, {
+  const res = await fetch(`${WERKSTATT_API_URL}/roadmaps/${encodeURIComponent(roadmapKey)}`, {
     method: 'PUT',
     headers,
     body: JSON.stringify(toRoadmapPayload(project)),
@@ -111,6 +112,6 @@ export async function syncTimelineToWerkstatt(
 
   if (!res.ok) {
     const text = await res.text().catch(() => res.statusText);
-    throw new Error(`Werkstatt-Sync ${projectName} → ${res.status}: ${text}`);
+    throw new Error(`Werkstatt-Sync ${roadmapKey} → ${res.status}: ${text}`);
   }
 }

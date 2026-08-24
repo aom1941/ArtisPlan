@@ -181,7 +181,7 @@ export default function App() {
         const ac = new AbortController();
         werkstattInFlight.current = ac;
         syncTimelineToWerkstatt(project, ac.signal).catch((err) => {
-          if (err.name !== 'AbortError') {
+          if (err?.name !== 'AbortError') {
             console.warn('Werkstatt-Sync fehlgeschlagen (nicht kritisch):', err);
           }
         });
