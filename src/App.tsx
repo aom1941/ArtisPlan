@@ -20,7 +20,7 @@ import { AnnotationModal } from './components/Canvas/AnnotationModal';
 import { MoodboardGenerator } from './components/Moodboard/MoodboardGenerator';
 import { TimelineTracker } from './components/Timeline/TimelineTracker';
 import { ReferenceGallery } from './components/Gallery/ReferenceGallery';
-import { GoogleWorkspaceModal } from './components/Workspace/GoogleWorkspaceModal';
+import { NextcloudWorkspaceModal } from './components/Workspace/NextcloudWorkspaceModal';
 import { ShortcutsModal } from './components/Settings/ShortcutsModal';
 import { NewProjectModal } from './components/NewProjectModal';
 import { FloatingReferenceWindow } from './components/FloatingReferenceWindow';
@@ -43,16 +43,14 @@ import {
   createDefaultProject,
   sanitizeProject
 } from './lib/storage';
-import { 
-  initAuth, 
-  saveProjectToCloud, 
-  subscribeToProjectCloud 
-} from './lib/firebase';
-import { 
-  getStoredGoogleUser, 
-  getStoredAccessToken, 
-  backupProjectToGoogleDrive, 
-  exportTimelineToGoogleSheets 
+import {
+  isNextcloudConfigured,
+  saveProjectToNextcloud,
+  fetchProjectFromNextcloud
+} from './lib/nextcloudSync';
+import {
+  backupProjectToNextcloud,
+  exportTimelineToNextcloud
 } from './lib/workspace';
 import { getActiveBrushPreset, saveCustomBrush } from './lib/brushEngine';
 import { isWerkstattSyncConfigured, syncTimelineToWerkstatt } from './lib/werkstattSync';
@@ -144,28 +142,26 @@ export default function App() {
     touchPanZoom: true
   });
 
-  // Google Auth & Cloud State
-  const [googleUser, setGoogleUser] = useState<any>(() => getStoredGoogleUser());
+  // Nextcloud Sync State (no login/auth state needed — config is env-based, see lib/nextcloudSync.ts)
   const [isCloudSynced, setIsCloudSynced] = useState(true);
-  const [isBackingUpDrive, setIsBackingUpDrive] = useState(false);
+  const [isBackingUpNextcloud, setIsBackingUpNextcloud] = useState(false);
   const [isExportingSheet, setIsExportingSheet] = useState(false);
 
-  // Initialize Firebase Auth & Realtime Sync
+  // One-shot pull from Nextcloud on project load/switch. Unlike the old
+  // Firestore subscription, WebDAV has no push mechanism — this is a single
+  // fetch-and-adopt-if-newer check, not a live subscription.
   useEffect(() => {
-    initAuth().then((user) => {
-      if (user) {
-        // Subscribe to remote updates
-        const unsubscribe = subscribeToProjectCloud(project.id, (remoteProject) => {
-          if (remoteProject && remoteProject.updatedAt > project.updatedAt) {
-            setProject(sanitizeProject(remoteProject));
-          }
-        });
-        return () => unsubscribe();
+    if (!isNextcloudConfigured()) return;
+    let cancelled = false;
+    fetchProjectFromNextcloud(project.id).then((remoteProject) => {
+      if (!cancelled && remoteProject && remoteProject.updatedAt > project.updatedAt) {
+        setProject(sanitizeProject(remoteProject));
       }
     });
+    return () => { cancelled = true; };
   }, [project.id]);
 
-  // Auto-Save locally & to Firestore debounced
+  // Auto-Save locally & to Nextcloud (debounced)
   const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   useEffect(() => {
     saveLocalProject(project);
@@ -173,12 +169,12 @@ export default function App() {
 
     if (saveTimeoutRef.current) clearTimeout(saveTimeoutRef.current);
     saveTimeoutRef.current = setTimeout(async () => {
-      const success = await saveProjectToCloud(project);
+      const success = await saveProjectToNextcloud(project);
       if (success) setIsCloudSynced(true);
 
       // Best-effort bridge into Project Companion OS's werkstatt_sdk roadmap
       // store. No-ops when VITE_WERKSTATT_API_URL isn't set; a failure here
-      // must never affect Firestore sync state or canvas usage.
+      // must never affect Nextcloud sync state or canvas usage.
       if (isWerkstattSyncConfigured()) {
         syncTimelineToWerkstatt(project).catch((err) => {
           console.warn('Werkstatt-Sync fehlgeschlagen (nicht kritisch):', err);
@@ -729,37 +725,35 @@ export default function App() {
     setSelectedCanvasElements(items);
   }, [project]);
 
-  // Google Drive & Sheets Quick Actions
-  const handleTriggerDriveBackup = async () => {
-    const token = getStoredAccessToken();
-    if (!token) {
+  // Nextcloud Backup & Timeline Export Quick Actions
+  const handleTriggerNextcloudBackup = async () => {
+    if (!isNextcloudConfigured()) {
       setShowWorkspaceModal(true);
       return;
     }
-    setIsBackingUpDrive(true);
+    setIsBackingUpNextcloud(true);
     try {
-      await backupProjectToGoogleDrive(token, project);
+      await backupProjectToNextcloud(project);
       setProject(prev => ({ ...prev, lastCloudSync: new Date().toISOString() }));
       setIsCloudSynced(true);
     } catch (err) {
       console.error(err);
       setShowWorkspaceModal(true);
     } finally {
-      setIsBackingUpDrive(false);
+      setIsBackingUpNextcloud(false);
     }
   };
 
-  const handleExportTimelineToSheets = async () => {
-    const token = getStoredAccessToken();
-    if (!token) {
+  const handleExportTimelineToNextcloud = async () => {
+    if (!isNextcloudConfigured()) {
       setShowWorkspaceModal(true);
       return;
     }
     setIsExportingSheet(true);
     try {
-      const res = await exportTimelineToGoogleSheets(token, project);
-      if (res.sheetUrl) {
-        window.open(res.sheetUrl, '_blank');
+      const res = await exportTimelineToNextcloud(project);
+      if (res.url) {
+        window.open(res.url, '_blank');
       }
     } catch (err) {
       console.error(err);
@@ -801,9 +795,9 @@ export default function App() {
           onOpenShortcuts={() => setShowShortcutsModal(true)}
           onOpenWorkspace={() => setShowWorkspaceModal(true)}
           isCloudSynced={isCloudSynced}
-          googleUser={googleUser}
-          onTriggerDriveBackup={handleTriggerDriveBackup}
-          isBackingUp={isBackingUpDrive}
+          nextcloudConfigured={isNextcloudConfigured()}
+          onTriggerNextcloudBackup={handleTriggerNextcloudBackup}
+          isBackingUp={isBackingUpNextcloud}
           onOpenTimeMachine={() => setShowTimeMachine(true)}
           onOpenBrushStudio={() => setShowBrushStudio(true)}
           onOpenCanvasSearch={() => setShowSearchSidebar(prev => !prev)}
@@ -1010,7 +1004,7 @@ export default function App() {
           <TimelineTracker
             project={project}
             setProject={setProject}
-            onExportToGoogleSheets={handleExportTimelineToSheets}
+            onExportToNextcloud={handleExportTimelineToNextcloud}
             isExportingSheet={isExportingSheet}
           />
         )}
@@ -1026,11 +1020,9 @@ export default function App() {
         )}
 
         {activeView === 'workspace' && (
-          <GoogleWorkspaceModal
+          <NextcloudWorkspaceModal
             project={project}
             setProject={setProject}
-            googleUser={googleUser}
-            setGoogleUser={setGoogleUser}
             onClose={() => setActiveView('canvas')}
           />
         )}
@@ -1084,13 +1076,11 @@ export default function App() {
           />
         )}
 
-        {/* Google Workspace Modal */}
+        {/* Nextcloud Workspace Modal */}
         {showWorkspaceModal && (
-          <GoogleWorkspaceModal
+          <NextcloudWorkspaceModal
             project={project}
             setProject={setProject}
-            googleUser={googleUser}
-            setGoogleUser={setGoogleUser}
             onClose={() => setShowWorkspaceModal(false)}
           />
         )}
@@ -1167,8 +1157,8 @@ export default function App() {
             zoom={zoom}
             theme={theme}
             heatmapSettings={heatmapSettings}
-            googleUser={googleUser}
-            onBackupToDrive={handleTriggerDriveBackup}
+            nextcloudConfigured={isNextcloudConfigured()}
+            onBackupToDrive={handleTriggerNextcloudBackup}
           />
         )}
 
