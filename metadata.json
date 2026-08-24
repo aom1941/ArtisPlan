@@ -1,0 +1,6 @@
+{
+  "name": "ArtisPlan Studio",
+  "description": "Infinite sketching canvas with smart dynamic magnetic guide lines for moving and resizing objects, real-time multi-finger touch gesture visual path overlay & feedback HUD, customizable grid overlay & snapping, custom Stamp Brushes, stroke stabilization, activity heatmap density visualization, canvas object search, and version control.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
