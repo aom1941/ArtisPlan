@@ -57,6 +57,9 @@ import {
 import { getActiveBrushPreset, saveCustomBrush } from './lib/brushEngine';
 import { createVersionSnapshot, loadProjectVersions } from './lib/versionControl';
 import { alignCanvasObjects, type CanvasAlignmentAction } from './lib/alignmentEngine';
+import { useCanvasHistory } from './hooks/useCanvasHistory';
+import { sanitizeAndMigrateProject } from './lib/projectMigration';
+import { ProjectMutations } from './lib/projectMutations';
 
 export default function App() {
   // Theme state: dark | light | oled | sepia
@@ -66,12 +69,21 @@ export default function App() {
   const [activeView, setActiveView] = useState<'canvas' | 'moodboard' | 'timeline' | 'gallery' | 'workspace'>('canvas');
 
   // Project state
-  const [project, setProject] = useState<ProjectData>(() => loadLocalProject());
+  const [project, setProject] = useState<ProjectData>(() => {
+    const raw = loadLocalProject();
+    return sanitizeProject(raw);
+  });
   const [projectList, setProjectList] = useState(() => listAllLocalProjects());
 
-  // History Stack for Undo/Redo
-  const [history, setHistory] = useState<ProjectData[]>([]);
-  const [historyIndex, setHistoryIndex] = useState(-1);
+  // History Stack for Undo/Redo via custom hook
+  const {
+    recordHistory: pushHistorySnapshot,
+    undo: popUndo,
+    redo: popRedo,
+    canUndo,
+    canRedo,
+    clearHistory,
+  } = useCanvasHistory(project, { maxHistory: 35 });
 
   // Active Drawing & Canvas State
   const [activeTool, setActiveTool] = useState<CanvasTool>('pen');
@@ -171,30 +183,22 @@ export default function App() {
 
   // Record History Snapshot for Undo
   const recordHistory = useCallback(() => {
-    setHistory(prev => {
-      const next = prev.slice(0, historyIndex + 1);
-      next.push(JSON.parse(JSON.stringify(project)));
-      if (next.length > 30) next.shift();
-      return next;
-    });
-    setHistoryIndex(prev => Math.min(prev + 1, 29));
-  }, [project, historyIndex]);
+    pushHistorySnapshot(project);
+  }, [project, pushHistorySnapshot]);
 
-  const handleUndo = () => {
-    if (historyIndex > 0) {
-      const target = history[historyIndex - 1];
-      setHistoryIndex(prev => prev - 1);
-      setProject(target);
+  const handleUndo = useCallback(() => {
+    const prev = popUndo(project);
+    if (prev) {
+      setProject(sanitizeProject(prev));
     }
-  };
+  }, [popUndo, project]);
 
-  const handleRedo = () => {
-    if (historyIndex < history.length - 1) {
-      const target = history[historyIndex + 1];
-      setHistoryIndex(prev => prev + 1);
-      setProject(target);
+  const handleRedo = useCallback(() => {
+    const next = popRedo(project);
+    if (next) {
+      setProject(sanitizeProject(next));
     }
-  };
+  }, [popRedo, project]);
 
   // Keyboard Shortcuts Global Listener
   useEffect(() => {
@@ -776,8 +780,8 @@ export default function App() {
           onZoomIn={() => setZoom(prev => Math.min(prev * 1.2, 5.0))}
           onZoomOut={() => setZoom(prev => Math.max(prev * 0.8, 0.15))}
           onResetZoom={() => { setZoom(1.0); setPan({ x: 100, y: 80 }); }}
-          canUndo={historyIndex > 0}
-          canRedo={historyIndex < history.length - 1}
+          canUndo={canUndo}
+          canRedo={canRedo}
           onUndo={handleUndo}
           onRedo={handleRedo}
           theme={theme}
@@ -895,8 +899,8 @@ export default function App() {
 
             {/* Quick Tablet Controls */}
             <TabletControls
-              canUndo={historyIndex > 0}
-              canRedo={historyIndex < history.length - 1}
+              canUndo={canUndo}
+              canRedo={canRedo}
               onUndo={handleUndo}
               onRedo={handleRedo}
               zoom={zoom}
@@ -913,11 +917,11 @@ export default function App() {
             {/* Canvas Objects Search Sidebar */}
             {showSearchSidebar && (
               <CanvasSearchSidebar
+                isOpen={showSearchSidebar}
                 project={project}
                 onClose={() => setShowSearchSidebar(false)}
                 onNavigateToObject={handleNavigateToObject}
                 onFitAllContent={handleFitAllContent}
-                activeLayerId={activeLayerId}
               />
             )}
 
@@ -1062,8 +1066,7 @@ export default function App() {
         {/* Touch Gestures & Command HUD Configuration Modal */}
         {showTouchGestureModal && (
           <TouchGestureModal
-            settings={touchSettings}
-            onUpdateSettings={(newSettings) => {
+            onSettingsChange={(newSettings) => {
               setTouchSettings(newSettings);
               saveTouchSettings(newSettings);
             }}
@@ -1106,12 +1109,22 @@ export default function App() {
             onClose={() => setShowTimeMachine(false)}
             onRestoreVersion={(restored) => {
               recordHistory();
-              setProject(restored);
-              saveLocalProject(restored);
+              setProject(restored.snapshot);
+              saveLocalProject(restored.snapshot);
               setShowTimeMachine(false);
             }}
-            onCompareVersions={(versionA, versionB) => {
-              setComparingVersions({ versionA, versionB });
+            onForkVersion={(version) => {
+              const forkedProject: ProjectData = {
+                ...version.snapshot,
+                id: `proj-${Date.now()}`,
+                title: `${version.snapshot.title} (Fork from v${version.versionNumber})`,
+                createdAt: new Date().toISOString(),
+                updatedAt: new Date().toISOString(),
+              };
+              setProject(forkedProject);
+              saveLocalProject(forkedProject);
+              setProjectList(listAllLocalProjects());
+              setShowTimeMachine(false);
             }}
           />
         )}

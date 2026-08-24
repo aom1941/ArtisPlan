@@ -13,6 +13,8 @@ import {
 } from 'firebase/firestore';
 import { getAuth, signInAnonymously, onAuthStateChanged, User } from 'firebase/auth';
 import type { ProjectData } from '../types';
+import { sanitizeAndMigrateProject } from './projectMigration';
+import { sanitizeProject } from './storage';
 
 let firebaseConfig: any = {
   projectId: "picas-9e875",
@@ -70,13 +72,15 @@ export const sanitizeForFirestore = <T>(val: T): T => {
   return clean as T;
 };
 
-// Sync Project to Firestore
+// Sync Project to Firestore with revision tracking
 export const saveProjectToCloud = async (project: ProjectData): Promise<boolean> => {
   try {
     const projectRef = doc(db, 'art_projects', project.id);
     const sanitizedProject = sanitizeForFirestore(project);
     const cleanData = {
       ...sanitizedProject,
+      revision: (project.revision || 1),
+      schemaVersion: project.schemaVersion || 2,
       updatedAt: new Date().toISOString(),
       _cloudSavedAt: serverTimestamp(),
     };
@@ -88,13 +92,14 @@ export const saveProjectToCloud = async (project: ProjectData): Promise<boolean>
   }
 };
 
-// Fetch Project from Firestore
+// Fetch Project from Firestore with schema migration
 export const fetchProjectFromCloud = async (projectId: string): Promise<ProjectData | null> => {
   try {
     const projectRef = doc(db, 'art_projects', projectId);
     const snap = await getDoc(projectRef);
     if (snap.exists()) {
-      return snap.data() as ProjectData;
+      const data = snap.data();
+      return sanitizeProject(data as Partial<ProjectData>);
     }
     return null;
   } catch (err) {
@@ -103,16 +108,21 @@ export const fetchProjectFromCloud = async (projectId: string): Promise<ProjectD
   }
 };
 
-// Real-time listener for multi-device cross-sync
+// Real-time listener for multi-device cross-sync with revision check
 export const subscribeToProjectCloud = (
   projectId: string, 
-  onUpdate: (project: ProjectData) => void
+  onUpdate: (project: ProjectData) => void,
+  currentRevision?: number
 ) => {
   const projectRef = doc(db, 'art_projects', projectId);
   return onSnapshot(projectRef, (snap) => {
     if (snap.exists()) {
-      const data = snap.data() as ProjectData;
-      onUpdate(data);
+      const data = snap.data();
+      const project = sanitizeProject(data as Partial<ProjectData>);
+      // Only invoke if remote is newer or equal revision with changes
+      if (!currentRevision || (project.revision && project.revision > currentRevision)) {
+        onUpdate(project);
+      }
     }
   }, (err) => {
     console.warn("Firestore subscription note:", err.message);

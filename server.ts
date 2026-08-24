@@ -18,6 +18,24 @@ function getGeminiClient(): GoogleGenAI {
   return aiClient;
 }
 
+/**
+ * Safely strips markdown fences and parses JSON with robust fallback.
+ */
+function cleanAndParseJson<T>(rawText: string | undefined, fallback: T): T {
+  if (!rawText) return fallback;
+  try {
+    let text = rawText.trim();
+    // Strip markdown code fences if present
+    if (text.startsWith("```")) {
+      text = text.replace(/^```(?:json)?\s*/i, "").replace(/\s*```$/, "");
+    }
+    return JSON.parse(text) as T;
+  } catch (err) {
+    console.warn("Could not parse JSON from Gemini response, using fallback:", err);
+    return fallback;
+  }
+}
+
 async function startServer() {
   const app = express();
   const PORT = 3000;
@@ -83,10 +101,10 @@ async function startServer() {
       const response = await client.models.generateContent({
         model: "gemini-2.5-flash",
         contents: `Create a visual moodboard and color script for:
-Project Concept: "${prompt || 'Cyberpunk Samurai in Neon Rain'}"
-Aesthetic Style: "${aesthetic || 'Concept Art / Painterly'}"
-Target Medium: "${targetMedium || 'Digital Painting'}"
-Desired Mood: "${mood || 'Dramatic & Atmospheric'}"`,
+Project Concept: "${String(prompt || 'Cyberpunk Samurai in Neon Rain').slice(0, 500)}"
+Aesthetic Style: "${String(aesthetic || 'Concept Art / Painterly').slice(0, 200)}"
+Target Medium: "${String(targetMedium || 'Digital Painting').slice(0, 100)}"
+Desired Mood: "${String(mood || 'Dramatic & Atmospheric').slice(0, 200)}"`,
         config: {
           systemInstruction,
           responseMimeType: "application/json",
@@ -94,8 +112,24 @@ Desired Mood: "${mood || 'Dramatic & Atmospheric'}"`,
         }
       });
 
-      const text = response.text || "{}";
-      const parsed = JSON.parse(text);
+      const fallbackMoodboard = {
+        title: prompt ? `${prompt} Vision` : "Atmospheric Concept",
+        summary: `Curated ${aesthetic || 'cinematic'} mood board focusing on ${mood || 'evocative'} tone.`,
+        palette: [
+          { hex: "#2E3840", name: "Deep Charcoal", role: "Primary Shadow" },
+          { hex: "#4E6E81", name: "Atmospheric Slate", role: "Midtone Depth" },
+          { hex: "#F9DBBB", name: "Warm Amber Glow", role: "Key Rim Light" },
+          { hex: "#FF0303", name: "Crimson Accent", role: "Focal Pop" },
+          { hex: "#F8F9FA", name: "Clean Specular", role: "Highlight" }
+        ],
+        keywords: ["High Dynamic Range", "Volumetric Fog", "Impasto Texture", "Dynamic Composition"],
+        compositionTips: ["Group dark values to create strong contrast.", "Use leading lines toward focal element."],
+        lightingStyle: "Soft rim-lighting with moody ambient fill",
+        textureFocus: "Chunky textured brushwork with soft gradients",
+        suggestedReferences: [{ query: "Concept art lighting study", type: "Lighting" }]
+      };
+
+      const parsed = cleanAndParseJson(response.text, fallbackMoodboard);
       res.json(parsed);
     } catch (err: any) {
       console.error("Error generating moodboard:", err);
@@ -230,10 +264,10 @@ Desired Mood: "${mood || 'Dramatic & Atmospheric'}"`,
       const response = await client.models.generateContent({
         model: "gemini-2.5-flash",
         contents: `Create an art production timeline for:
-Project Name: "${projectName || 'Keyframe Art Concept'}"
-Type: "${projectType || 'Character & Environmental Concept Art'}"
-Target Duration: "${deadlineWeeks || 4} weeks"
-Scope / Details: "${scopeDescription || 'Full finished illustration with preliminary sketches, lighting studies, and client review checkpoints'}"`,
+Project Name: "${String(projectName || 'Keyframe Art Concept').slice(0, 300)}"
+Type: "${String(projectType || 'Character & Environmental Concept Art').slice(0, 200)}"
+Target Duration: "${Number(deadlineWeeks) || 4} weeks"
+Scope / Details: "${String(scopeDescription || 'Full finished illustration with preliminary sketches and review checkpoints').slice(0, 500)}"`,
         config: {
           systemInstruction,
           responseMimeType: "application/json",
@@ -241,8 +275,33 @@ Scope / Details: "${scopeDescription || 'Full finished illustration with prelimi
         }
       });
 
-      const text = response.text || "{}";
-      const parsed = JSON.parse(text);
+      const weeks = Number(deadlineWeeks) || 4;
+      const now = new Date();
+      const addDays = (d: number) => {
+        const resDate = new Date(now);
+        resDate.setDate(resDate.getDate() + d);
+        return resDate.toISOString().split("T")[0];
+      };
+
+      const fallbackTimeline = {
+        projectOverview: `Structured ${weeks}-week art workflow for ${projectName || 'Artwork'}`,
+        totalEstimatedHours: weeks * 12,
+        milestones: [
+          {
+            id: "m-1",
+            phase: "Phase 1: Research & Mood Board",
+            title: "Reference Gathering & Moodboard",
+            description: "Collect high-res lighting and anatomy references.",
+            startDate: addDays(0),
+            endDate: addDays(Math.max(2, Math.floor(weeks * 1.5))),
+            status: "in-progress",
+            color: "#3B82F6",
+            tasks: ["Gather references", "Lock palette", "Define canvas aspect ratio"]
+          }
+        ]
+      };
+
+      const parsed = cleanAndParseJson(response.text, fallbackTimeline);
       res.json(parsed);
     } catch (err: any) {
       console.error("Error generating timeline:", err);
@@ -256,20 +315,22 @@ Scope / Details: "${scopeDescription || 'Full finished illustration with prelimi
       const { noteText, canvasSummary, question } = req.body;
       const apiKey = process.env.GEMINI_API_KEY;
 
+      const fallbackCritique = {
+        feedback: "Focus on strengthening your focal contrast. Darken background values slightly to make the subject pop. Check the anatomy proportions on the primary gesture line.",
+        compositionSuggestions: ["Rule of thirds balance", "Add subtle rim light on the upper edge", "Check value hierarchy in monochrome"],
+        brushTechniqueTip: "Use textured dry brushes on the clothing to create fabric tactile depth."
+      };
+
       if (!apiKey) {
-        return res.json({
-          feedback: "Focus on strengthening your focal contrast. Darken background values slightly to make the subject pop. Check the anatomy proportions on the primary gesture line.",
-          compositionSuggestions: ["Rule of thirds balance", "Add subtle rim light on the upper edge", "Check value hierarchy in monochrome"],
-          brushTechniqueTip: "Use textured dry brushes on the clothing to create fabric tactile depth."
-        });
+        return res.json(fallbackCritique);
       }
 
       const client = getGeminiClient();
       const response = await client.models.generateContent({
         model: "gemini-2.5-flash",
         contents: `You are an encouraging, expert art director giving constructive visual critique and suggestions.
-Artist's Question/Annotation: "${question || noteText || 'How can I improve the composition and lighting?'}"
-Context: "${canvasSummary || 'Digital sketch work in progress with moodboard and character studies'}"
+Artist's Question/Annotation: "${String(question || noteText || 'How can I improve the composition and lighting?').slice(0, 400)}"
+Context: "${String(canvasSummary || 'Digital sketch work in progress with moodboard and character studies').slice(0, 500)}"
 Provide structured feedback with concise pointers.`,
         config: {
           systemInstruction: `Respond in JSON: {"feedback": "string", "compositionSuggestions": ["item1", "item2"], "brushTechniqueTip": "string"}`,
@@ -277,7 +338,7 @@ Provide structured feedback with concise pointers.`,
         }
       });
 
-      const parsed = JSON.parse(response.text || "{}");
+      const parsed = cleanAndParseJson(response.text, fallbackCritique);
       res.json(parsed);
     } catch (err: any) {
       console.error("Error in AI critique:", err);

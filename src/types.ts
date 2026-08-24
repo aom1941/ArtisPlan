@@ -258,6 +258,8 @@ export interface CanvasGridSettings {
 
 export interface ProjectData {
   id: string;
+  schemaVersion?: number; // Schema migration version (current: 2)
+  revision?: number; // Monotonic edit revision counter for cloud sync conflict detection
   title: string;
   description: string;
   createdAt: string;

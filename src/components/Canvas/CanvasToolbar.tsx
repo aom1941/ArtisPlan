@@ -746,7 +746,6 @@ export const CanvasToolbar: React.FC<CanvasToolbarProps> = ({
                 onChange={onUpdateGridSettings}
                 onClose={() => setShowGridPopover(false)}
                 theme={theme}
-                anchorAlign="bottom"
               />
             )}
           </div>

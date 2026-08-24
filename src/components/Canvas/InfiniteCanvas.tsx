@@ -20,7 +20,8 @@ import type { HeatmapSettings, HotspotCluster } from '../../types/heatmap';
 import { renderActivityHeatmap, detectActivityHotspots } from '../../utils/heatmapEngine';
 import { 
   renderAdvancedBrushStroke, 
-  getActiveBrushPreset 
+  getActiveBrushPreset,
+  DEFAULT_BRUSH_PRESETS
 } from '../../lib/brushEngine';
 import { StrokeStabilizer, type StabilizerTether } from '../../lib/strokeStabilizer';
 import { 
@@ -1231,8 +1232,8 @@ export const InfiniteCanvas: React.FC<InfiniteCanvasProps> = ({
     if (stroke.points.length === 0) return;
 
     // Advanced Brush Preset Engine Rendering
-    if (stroke.tool === 'brush' || stroke.customDynamics) {
-      const brushToUse = stroke.customDynamics || activeBrushPreset;
+    if (stroke.tool === 'brush') {
+      const brushToUse = (stroke.brushPresetId ? DEFAULT_BRUSH_PRESETS.find(p => p.id === stroke.brushPresetId) : null) || activeBrushPreset || DEFAULT_BRUSH_PRESETS[0];
       if (brushToUse) {
         renderAdvancedBrushStroke(
           ctx, 
@@ -1672,7 +1673,7 @@ export const InfiniteCanvas: React.FC<InfiniteCanvasProps> = ({
         opacity: activeOpacity,
         layerId: activeLayerId,
         createdAt: Date.now(),
-        ...(activeTool === 'brush' && activeBrushPreset ? { customDynamics: activeBrushPreset } : {})
+        ...(activeTool === 'brush' && activeBrushPreset ? { brushPresetId: activeBrushPreset.id } : {})
       };
       setCurrentStroke(newStroke);
     }

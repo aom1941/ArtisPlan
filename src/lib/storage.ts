@@ -376,8 +376,13 @@ export const sanitizeProject = (raw: Partial<ProjectData> | null | undefined): P
     ? raw.layers
     : fallback.layers;
 
+  const schemaVersion = typeof raw.schemaVersion === 'number' ? raw.schemaVersion : 2;
+  const revision = typeof raw.revision === 'number' ? raw.revision : 1;
+
   return {
     id: raw.id || fallback.id,
+    schemaVersion,
+    revision,
     title: raw.title || fallback.title,
     description: raw.description ?? fallback.description,
     createdAt: raw.createdAt || fallback.createdAt,
@@ -425,6 +430,13 @@ export const sanitizeProject = (raw: Partial<ProjectData> | null | undefined): P
       enableSmartGuides: raw.canvasSettings?.enableSmartGuides ?? true
     }
   };
+};
+
+export const StorageService = {
+  loadCurrentProject: (projectId?: string): ProjectData => loadLocalProject(projectId),
+  saveProject: (project: ProjectData): void => saveLocalProject(project),
+  listProjects: () => listAllLocalProjects(),
+  createDefault: (id?: string, title?: string): ProjectData => createDefaultProject(id, title),
 };
 
 export const loadLocalProject = (projectId?: string): ProjectData => {
