@@ -46,13 +46,46 @@ ArtisPlan Studio is a high-performance, infinite sketching and vector canvas bui
 
 ## Self-Hosted Integrations (optional)
 
-ArtisPlan works entirely standalone (local canvas state persisted via `localStorage`), but can optionally connect to self-hosted services instead of any cloud API — see `.env.example`:
+ArtisPlan works entirely standalone (local canvas state persisted via `localStorage`), but can optionally connect to self-hosted services instead of any cloud API — see `.env.example`. `package.json` is still named `react-example`; that is this Studio app, not a template leftover in the runtime.
 
 - **AI generation** (Moodboard Generator, AI Timeline Generator, Annotation Critique) runs against [Ollama](https://ollama.com/) (`OLLAMA_URL` / `OLLAMA_MODEL`, no API key) rather than a cloud LLM. If Ollama is unreachable, each feature falls back to curated static defaults.
 - **Project sync, backup & export** (Navbar's Nextcloud button / "Workspace" view) uses [Nextcloud](https://nextcloud.com/) WebDAV (`VITE_NEXTCLOUD_URL` / `VITE_NEXTCLOUD_USER` / `VITE_NEXTCLOUD_APP_PASSWORD`) instead of Google Drive/Docs/Sheets — full project JSON backups, a Markdown project brief, and a CSV timeline export.
 - **Timeline → werkstatt_sdk bridge** (`VITE_WERKSTATT_API_URL`) pushes milestones into a self-hosted [Project Companion OS](https://github.com/aom1941/Project-Companion----visual-computer) instance — see that repo's `CLAUDE.md` for the full picture.
+- **Companion OS core API** (`VITE_COMPANION_API_URL`) drives Ideen-Pool import, the Navbar vitals pill, and annotation-digest push (`src/lib/companionBridge.ts`). If unset, the URL is derived by stripping `/werkstatt` from `VITE_WERKSTATT_API_URL`. Leave **both** unset to disable every OS integration.
 
-None of these are required — every integration no-ops cleanly if its env vars are unset.
+None of these are required — every integration no-ops cleanly if its env vars are unset. Copying `.env.example` as-is does **not** enable Werkstatt sync (`VITE_WERKSTATT_API_URL` stays commented).
+
+### Environment contract
+
+| Variable | Where | Default | Effect |
+| --- | --- | --- | --- |
+| `OLLAMA_URL` / `OLLAMA_MODEL` | server process | `http://127.0.0.1:11434` / `qwen2.5vl:7b` | Express AI routes. 20 s timeout, JSON-mode `/api/chat`. |
+| `PORT` | server process | `5175` | Dev and production listen address (`0.0.0.0`). Do not reuse `:3000`. |
+| `VITE_NEXTCLOUD_*` | Vite client | unset | WebDAV project JSON / Markdown / CSV under `/ArtisPlan/exports`. |
+| `VITE_WERKSTATT_API_URL` | Vite client | unset (commented in `.env.example`) | Enables `PUT …/roadmaps/{project.id}` on debounce. |
+| `VITE_WERKSTATT_TOKEN` | Vite client | empty | Standalone auth. Iframe `?auth_token=` from Project Companion OS **wins**. |
+| `VITE_WERKSTATT_DOMAIN_TAG` | Vite client | `ARC` | HRFR domain on the roadmap payload. |
+| `VITE_COMPANION_API_URL` | Vite client | derived from Werkstatt URL, else unset | `/ideas`, `/vitals`, `/annotations/{projectName}`. |
+
+Werkstatt sync (`src/lib/werkstattSync.ts`):
+
+- Roadmap key is the stable `project.id` (title changes must not orphan the remote roadmap).
+- Payload always sends `confirm: "AUTORISIERT"` so `RoadmapEngine.update_roadmap()` may overwrite.
+- A 1.5 s debounce plus `AbortController` cancels an in-flight PUT when a newer project snapshot supersedes it.
+- Failures are `console.warn` only; they must not flip Nextcloud sync state or block the canvas.
+
+## Public HTTP API
+
+Express in `server.ts` (same process as the Vite SPA in development):
+
+| Method | Path | Behavior |
+| --- | --- | --- |
+| `GET` | `/api/health` | `{ status, timestamp }` |
+| `POST` | `/api/ai/moodboard` | Ollama JSON moodboard, else curated fallback |
+| `POST` | `/api/ai/timeline` | Ollama milestone plan, else 5-phase fallback |
+| `POST` | `/api/ai/critique` | Ollama critique JSON, else static pointers |
+
+There is no Werkstatt or Nextcloud proxy in this process — those calls go from the browser to the configured URLs.
 
 ---
 
@@ -77,7 +110,18 @@ Start the local development server:
 ```bash
 npm run dev
 ```
-The application will be accessible at `http://localhost:5175` (override with `PORT=<port>`).
+The application will be accessible at `http://localhost:5175` (override with `PORT=<port>`). The server binds `0.0.0.0`.
+
+### Common pitfalls
+
+| Symptom | Cause | What to do |
+| --- | --- | --- |
+| Port already in use on `3000` | This app defaults to **5175** because `:3000` belongs to Project Companion OS / Gitea connectors | Leave `PORT=5175` (or pick another free slot). |
+| Werkstatt PUTs never fire | `VITE_WERKSTATT_API_URL` commented / unset | Uncomment it in `.env` / `.env.local` and restart Vite. |
+| Companion vitals / ideas talk to `:9999` unexpectedly | `VITE_COMPANION_API_URL` set while Werkstatt is off | Leave companion unset unless you want that API; derivation only happens when the Werkstatt URL is set. |
+| Stale roadmap after renaming a project | Older builds keyed by title | Current code keys by `project.id`. |
+| Ollama AI returns the canned palette | `OLLAMA_URL` down, model missing, non-JSON, or >20 s | Expected; check `ollama list` and the server log `Ollama unreachable…`. |
+| Nextcloud export silent-fails | App password / WebDAV URL wrong | Use an App Password, not the account password. Canvas still saves to `localStorage`. |
 
 ### Production Build
 Compile the client application and bundled backend server:
