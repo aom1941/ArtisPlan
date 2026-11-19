@@ -1,116 +1,114 @@
 # ArtisPlan Studio
 
-ArtisPlan Studio is a high-performance, infinite sketching and vector canvas built with React 19, TypeScript, and Tailwind CSS. It combines fluid digital illustration tools with precision CAD-grade alignment systems, custom magnetic guidelines, touch gesture visualizations, stamp brushes, stroke stabilization, activity heatmaps, and version control.
+Unendliche Skizzen-Leinwand im Browser, gebaut für Stift und Touch. Sie verbindet freies Zeichnen mit präziser Ausrichtung: magnetische Hilfslinien, Raster, Pinsel mit Stempeln, Versionsverlauf, Mood-Board, Zeitplan und Referenzgalerie. Alles läuft lokal. KI-Funktionen und Synchronisation sind optional und nutzen nur Dienste, die du selbst betreibst (Ollama, Nextcloud).
 
----
+**Stand:** Prototyp (React 19, Vite 6, Tailwind 4, kleiner Express-Server). Läuft lokal, speichert im Browser. Gebaut aus einer Google-AI-Studio-Vorlage und danach auf Selbst-Hosting umgestellt.
 
-## Key Features
+## Was drin ist
 
-### 1. Smart Magnetic Guidelines & Alignment
-- **Custom Interactive Guidelines**: Create, drag, reposition, lock, and color-code horizontal and vertical canvas guidelines.
-- **Smart Guide Manager**:
-  - Precision coordinate positioning with single-pixel accuracy.
-  - Multi-select checkboxes for batch operations (bulk delete, batch recoloring, batch lock/unlock, batch visibility).
-  - Global **Show/Hide All** toggle to declutter canvas views on demand.
-  - Composition presets including **Rule of Thirds**, **Golden Ratio**, **Canvas Origin**, **Print Margins**, and **16:9 Safe Areas**.
-  - Direct viewport centering to jump immediately to any guideline coordinate.
-- **Magnetic Snapping Engine**: Real-time bounding box edge and center snapping with haptic feedback, laser ray overlays, and glowing distance badges.
+Die Liste folgt dem Code (`src/`) und einer Laufprobe der Oberfläche. Touch-Gesten, Apple Pencil, Ollama und Nextcloud sind im Code vorhanden, ich konnte sie nicht mit Geräten und Diensten ausprobieren.
 
-### 2. Infinite Canvas & Natural Inking
-- **Smooth Canvas Navigation**: Infinite pan and zoom with sub-pixel precision, minimap navigation, and origin re-centering.
-- **Stroke Stabilization & Inking**: Adjustable line smoothing (Streamline / Lazy Nezumi style), pressure simulation, and high-DPI rasterization.
-- **Custom Stamp Brushes**: Configurable procedural and stamp brushes (scatter, rotation jitter, spacing, opacity dynamics).
-- **Customizable Grid Overlay**: Isometric, dot grid, Cartesian, and millimeter grids with magnetic vertex snapping.
+**Leinwand**
+- Unendliche Fläche mit Verschieben und Zoomen, Hand- und Auswahlwerkzeug, Rückgängig und Wiederholen
+- Zeichnen mit Stift, Pinsel, Bleistift, Textmarker und Radierer, einstellbare Linienglättung (`strokeStabilizer`), Pipette
+- Formen, Haftnotizen, Textfelder, Anmerkungen mit Kommentaren, angeheftete Referenzbilder
+- Ebenen mit Sichtbarkeit, Sperre und Deckkraft
+- Suche über alle Objekte der Leinwand (`Strg/Cmd + F`)
+- Wärmekarte, die zeigt, wo viel gezeichnet wurde
+- Export als PNG, SVG, JPEG oder WebP in 1× bis 4×, mit Vorschau (`Strg/Cmd + E`)
 
-### 3. Touch Gesture Engine & Visual HUD
-- **Multi-Finger Gesture Recognition**: Pinch-to-zoom, two-finger rotate, two-finger tap (undo), three-finger tap (redo), and four-finger canvas reset.
-- **Real-Time Gesture Feedback HUD**: Dynamic touch path visualization and glowing gesture HUD indicator during active finger gestures.
-- **Palm Rejection**: Dedicated Apple Pencil / stylus mode with configurable palm rejection thresholds.
+**Ausrichten**
+- Eigene horizontale und vertikale Hilfslinien: setzen, ziehen, sperren, färben, per Koordinate positionieren
+- Vorlagen für Hilfslinien: Drittelregel, Kinoformat, Ursprung, Druckränder
+- Magnetisches Einrasten an Kanten und Mitten mit Abstandsanzeige
+- Raster: Linien, Punkte, Papier, Kreuze, Isometrisch, Dreieck
 
-### 4. Layers, Version Control & Reference Tools
-- **Layer Stack Management**: Reorderable layers with opacity controls, blend modes, locking, and visibility toggling.
-- **Time-Travel History & Snapshot Branching**: Non-destructive undo/redo history stack and project checkpoint versioning.
-- **Picture-in-Picture Floating References**: Resizable moodboard and reference window with color-picker sampling.
-- **Activity Heatmap Density**: Visual representation of stroke density and edit intensity across the canvas.
+**Pinsel und Stempel**
+- Brush Studio: Spitzenform, Härte, Winkel, Abstand, Streuung, Druck- und Textur-Einstellungen, Probefläche
+- Vorgefertigte Pinsel und Stempel, eigene Presets importieren und exportieren
 
----
+**Touch und Stift**
+- Gesten: Pinch zum Zoomen, Zwei-Finger-Tipp (Rückgängig), Drei-Finger-Tipp (Wiederholen), Vier-Finger-Gesten
+- „Stylus Lock" mit Handballen-Erkennung, Haptik, Anzeige der Fingerpfade
 
-## Tech Stack
+**Projekt**
+- Zeitmaschine: Speicherpunkte, Vergleich zweier Stände, Zweig anlegen, JSON-Export
+- Mood-Board: Palette, Schlüsselwörter, Licht- und Kompositionshinweise, Übernahme als Farbfelder
+- Zeitplan mit Meilensteinen, Aufgabenlisten und Fortschritt, CSV-Export
+- Referenzgalerie mit Kategorien, Suche und schwebendem Referenzfenster
 
-- **Frontend**: [React 19](https://react.dev/), [TypeScript](https://www.typescriptlang.org/), [Vite](https://vitejs.dev/)
-- **Styling**: [Tailwind CSS v4](https://tailwindcss.com/)
-- **Icons & Motion**: [Lucide React](https://lucide.dev/), [Motion](https://motion.dev/)
-- **Backend / Dev Server**: [Node.js](https://nodejs.org/), [Express](https://expressjs.com/), [tsx](https://github.com/privatenumber/tsx), [esbuild](https://esbuild.github.io/)
+## Starten
 
----
+Voraussetzung: Node.js `20.19` oder neuer (oder `22.12+`), so verlangt es `@vitejs/plugin-react`.
 
-## Self-Hosted Integrations (optional)
-
-ArtisPlan works entirely standalone (local canvas state persisted via `localStorage`), but can optionally connect to self-hosted services instead of any cloud API — see `.env.example`:
-
-- **AI generation** (Moodboard Generator, AI Timeline Generator, Annotation Critique) runs against [Ollama](https://ollama.com/) (`OLLAMA_URL` / `OLLAMA_MODEL`, no API key) rather than a cloud LLM. If Ollama is unreachable, each feature falls back to curated static defaults.
-- **Project sync, backup & export** (Navbar's Nextcloud button / "Workspace" view) uses [Nextcloud](https://nextcloud.com/) WebDAV (`VITE_NEXTCLOUD_URL` / `VITE_NEXTCLOUD_USER` / `VITE_NEXTCLOUD_APP_PASSWORD`) instead of Google Drive/Docs/Sheets — full project JSON backups, a Markdown project brief, and a CSV timeline export.
-- **Timeline → werkstatt_sdk bridge** (`VITE_WERKSTATT_API_URL`) pushes milestones into a self-hosted [Project Companion OS](https://github.com/aom1941/Project-Companion----visual-computer) instance — see that repo's `CLAUDE.md` for the full picture.
-
-None of these are required — every integration no-ops cleanly if its env vars are unset.
-
----
-
-## Getting Started
-
-### Prerequisites
-- Node.js (v18 or higher)
-- npm or yarn
-
-### Installation
 ```bash
-# Clone the repository
-git clone <repository-url>
-cd <project-folder>
-
-# Install dependencies
+git clone https://github.com/aom1941/ArtisPlan.git
+cd ArtisPlan
 npm install
-```
-
-### Development
-Start the local development server:
-```bash
 npm run dev
 ```
-The application will be accessible at `http://localhost:5175` (override with `PORT=<port>`).
 
-### Production Build
-Compile the client application and bundled backend server:
-```bash
-# Build frontend and compile backend with esbuild
-npm run build
+Dann `http://localhost:5175` öffnen (anderer Port mit `PORT=<port>`). Es braucht keine Konfiguration und keinen Schlüssel.
 
-# Start production server
-npm run start
+Der Server lauscht standardmäßig nur auf `127.0.0.1` (Änderung mit `HOST=<adresse>`, z. B. `HOST=0.0.0.0` für alle Netzwerkadressen). Siehe Abschnitt „Sicherheit“.
+
+| Befehl | Wirkung |
+|---|---|
+| `npm run dev` | Entwicklungsserver (Express und Vite in einem Prozess) |
+| `npm run build` | Frontend bauen und `server.ts` nach `dist/server.cjs` bündeln |
+| `npm run start` | den gebauten Server starten |
+| `npm run lint` | Typprüfung mit `tsc --noEmit` |
+
+Prüfstand: Typprüfung ohne Fehler, `npm install`, `npm run build` und Entwicklungsserver laufen (Antwort auf `/api/health`, Bindung nur an `127.0.0.1`). Es gibt keine automatisierten Tests.
+
+## Optionale Anbindungen
+
+Alles ist ohne Konfiguration abschaltbar. Vorlage: `.env.example`.
+
+| Anbindung | Variablen | Wirkung |
+|---|---|---|
+| **Ollama** (KI) | `OLLAMA_URL`, `OLLAMA_MODEL` (Standard `http://127.0.0.1:11434`, `qwen2.5vl:7b`) | Mood-Board-Generator, Zeitplan-Generator und Anmerkungs-Kritik. Ist Ollama nicht erreichbar, liefert der Server **feste Vorgabewerte** und zeigt nicht an, dass es Vorgaben sind. |
+| **Nextcloud** (Sicherung, Export) | `VITE_NEXTCLOUD_URL`, `VITE_NEXTCLOUD_USER`, `VITE_NEXTCLOUD_APP_PASSWORD` | Projekt-Sicherung als JSON, Projektbeschreibung als Markdown und Zeitplan als CSV über WebDAV nach `/ArtisPlan/exports`. |
+| **Companion-Dashboard** (eigenes, nicht öffentliches Projekt) | `VITE_WERKSTATT_API_URL`, `VITE_WERKSTATT_TOKEN`, `VITE_WERKSTATT_DOMAIN_TAG`, `VITE_COMPANION_API_URL` | Meilensteine an ein separates Dashboard senden, Ideen-Pool importieren, Systemstatus zeigen. Ohne Konfiguration passiert nichts. |
+
+Die Server-Schnittstelle in `server.ts`:
+
+| Methode | Pfad | Wirkung |
+|---|---|---|
+| `GET` | `/api/health` | `{ status, timestamp }` |
+| `POST` | `/api/ai/moodboard` | Mood-Board über Ollama, sonst Vorgabe |
+| `POST` | `/api/ai/timeline` | Zeitplan über Ollama, sonst Fünf-Phasen-Vorgabe |
+| `POST` | `/api/ai/critique` | Anmerkungs-Kritik über Ollama, sonst feste Hinweise |
+
+## Sicherheit
+
+- **`VITE_`-Variablen landen im Browser-Code.** Wer die Seite laden kann, kann `VITE_NEXTCLOUD_APP_PASSWORD` und `VITE_WERKSTATT_TOKEN` aus dem ausgelieferten JavaScript lesen. Deshalb nur auf einem Rechner nutzen, den nur du erreichst, und ein eigenes App-Passwort mit minimalen Rechten verwenden, das du jederzeit widerrufen kannst.
+- **Die KI-Schnittstellen haben keine Anmeldung** und nehmen bis zu 50 MB pro Anfrage an. Nicht ins offene Netz stellen. Deshalb bindet der Server ohne `HOST` nur an `127.0.0.1`; wer `HOST=0.0.0.0` setzt, macht sie für das ganze Netzwerk erreichbar.
+- Die Seite lädt Schriften von Google Fonts und Beispielbilder von Unsplash (siehe `index.html`, `src/lib/storage.ts`). Ohne Netz erscheinen Systemschriften und Platzhalter.
+
+## Ordner
+
+```
+server.ts               Express: /api/ai/*, liefert in der Entwicklung Vite aus
+src/App.tsx             Reiter: Canvas, Mood Board, Timeline, Ref Gallery, Workspace
+src/components/         Canvas, Pinsel, Zeitmaschine, Mood-Board, Zeitplan, Galerie, Nextcloud
+src/lib/                Raster, Ausrichtung, Pinsel, Gesten, Export, Speicher, Anbindungen
+src/hooks/              Verlauf, Projektsitzung
 ```
 
-### Type Checking & Linting
-Validate TypeScript types across the project:
-```bash
-npm run lint
-```
+## Tastenkürzel
 
----
+| Aktion | Kürzel |
+|---|---|
+| Verschieben | Leertaste + Ziehen oder mittlere Maustaste |
+| Zoomen | `Strg/Cmd` + Mausrad oder Pinch |
+| Rückgängig | `Strg/Cmd + Z` oder Zwei-Finger-Tipp |
+| Wiederholen | `Strg/Cmd + Umschalt + Z` oder Drei-Finger-Tipp |
+| Alles auswählen | `Strg/Cmd + A` |
+| Auswahl löschen | `Entf` oder `Rück` |
+| Suche | `Strg/Cmd + F` |
+| Export | `Strg/Cmd + E` |
 
-## Canvas Shortcuts
+## Lizenz
 
-| Action | Shortcut |
-| :--- | :--- |
-| **Pan Canvas** | Space + Drag or Middle Click |
-| **Zoom Canvas** | Ctrl / Cmd + Mouse Wheel or Pinch |
-| **Undo** | Ctrl / Cmd + Z or Two-Finger Tap |
-| **Redo** | Ctrl / Cmd + Shift + Z or Three-Finger Tap |
-| **Guide Manager** | Click Compass / Guide Icon on Floating Dock |
-| **Snap Toggle** | S or Magnetic Toggle in Quick Controls |
-| **Select All Objects** | Ctrl / Cmd + A |
-| **Delete Selected** | Delete / Backspace |
-
----
-
-## License
-MIT License.
+Noch nicht festgelegt. Es liegt keine `LICENSE`-Datei im Repository; bis eine Lizenz gewählt ist, gilt: alle Rechte vorbehalten.

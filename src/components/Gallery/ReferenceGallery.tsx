@@ -152,7 +152,7 @@ export const ReferenceGallery: React.FC<ReferenceGalleryProps> = ({
                 className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-[#1A1A22] hover:bg-[#242430] text-zinc-200 text-xs font-semibold border border-zinc-700/80 transition-colors shadow-sm"
               >
                 <FolderOpen className="w-4 h-4 text-cyan-400" />
-                <span>Import from GDrive</span>
+                <span>Nextcloud öffnen</span>
               </button>
             </div>
           </div>
