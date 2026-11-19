@@ -70,6 +70,8 @@ async function startServer() {
   // free slot after elster-ready-accounting (:5173) / picas-fingerprint-explorer
   // (:5174) in that same connectors.json, overridable via PORT.
   const PORT = Number(process.env.PORT) || 5175;
+  // Nur lokal erreichbar, solange HOST nicht ausdrücklich gesetzt wird (z. B. HOST=0.0.0.0).
+  const HOST = process.env.HOST || "127.0.0.1";
 
   app.use(express.json({ limit: "50mb" }));
 
@@ -347,8 +349,8 @@ Provide structured feedback with concise pointers.`;
     });
   }
 
-  app.listen(PORT, "0.0.0.0", () => {
-    console.log(`ArtisPlan Server running on http://0.0.0.0:${PORT}`);
+  app.listen(PORT, HOST, () => {
+    console.log(`ArtisPlan Server running on http://${HOST}:${PORT}`);
   });
 }
 

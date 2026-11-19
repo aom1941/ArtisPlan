@@ -111,7 +111,7 @@ export const MoodboardGenerator: React.FC<MoodboardGeneratorProps> = ({
             <div>
               <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-purple-950/80 border border-purple-800/80 text-purple-300 text-xs font-semibold mb-2">
                 <Sparkles className="w-3.5 h-3.5" />
-                <span>Gemini Visual Mood Board & Palette Engine</span>
+                <span>Mood-Board-Generator (Ollama, lokal)</span>
               </div>
               <h1 className="text-2xl md:text-3xl font-bold tracking-tight text-white font-['Outfit']">
                 Creative Art Director & Mood Board
@@ -298,7 +298,7 @@ export const MoodboardGenerator: React.FC<MoodboardGeneratorProps> = ({
               onClick={onOpenWorkspace}
               className="text-xs text-cyan-400 hover:text-cyan-300 flex items-center gap-1 font-medium"
             >
-              <span>Import from Google Drive</span>
+              <span>Nextcloud öffnen</span>
               <ExternalLink className="w-3.5 h-3.5" />
             </button>
           </div>

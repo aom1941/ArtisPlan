@@ -228,7 +228,7 @@ export const TimelineTracker: React.FC<TimelineTrackerProps> = ({
           <div className="space-y-1">
             <div className="flex items-center gap-2 text-purple-300 font-semibold text-xs">
               <Sparkles className="w-4 h-4 text-purple-400" />
-              <span>Gemini AI Art Production Schedule Generator</span>
+              <span>Zeitplan-Generator (Ollama, lokal)</span>
             </div>
             <p className="text-xs text-zinc-400 max-w-xl">
               Automatically calculate milestone dates, deliverable checklists, and realistic hourly budgets customized to your artwork.
